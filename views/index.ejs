@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Clue Game</title>
+    <title>Host - Clue Game</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,12 +12,210 @@
         }
         img {
             margin-top: 20px;
+            width: 250px;
+            height: 250px;
+        }
+        .host-panel {
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 600px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .players-counter {
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .player-list {
+            margin: 10px 0;
+            max-height: 150px;
+            overflow-y: auto;
+            text-align: left;
+            width: 80%;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        button {
+            padding: 12px 30px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .host-label {
+            background-color: #ff9800;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        #modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+        }
+        .modal-content {
+            background-color: #fff;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+            margin: 100px auto;
+            padding: 30px;
+            text-align: center;
+            animation: fadeInDown 0.5s;
+        }
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .modal-content h2 {
+            margin-top: 0;
+        }
+        .modal-spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <h1>Welcome to Clue Mother Fuckers!</h1>
-    <p>Scan the QR code below to join the game:</p>
-    <img src="<%= qrCodeUrl %>" alt="QR Code" />
+    <div class="host-label">HOST VIEW</div>
+    <h1>Welcome to Clue Game!</h1>
+    
+    <div class="host-panel">
+        <h2>Game Setup</h2>
+        <p>Have players scan this QR code to join the game:</p>
+        <img src="<%= qrCodeUrl %>" alt="QR Code" />
+        
+        <div class="players-counter">
+            Players joined: <span id="player-count"><%= playerCount %></span>
+        </div>
+        
+        <div class="player-list" id="player-list">
+            <!-- Player names will be listed here -->
+            <p id="no-players-message">No players have joined yet.</p>
+        </div>
+        
+        <button id="start-game-btn">Begin Game</button>
+    </div>
+    
+    <!-- Modal for card assignment -->
+    <div id="modal">
+        <div class="modal-content">
+            <h2 id="modal-title">Assigning Cards</h2>
+            <div class="modal-spinner"></div>
+            <p id="modal-message">Please wait while cards are being assigned to all players...</p>
+        </div>
+    </div>
+
+    <script>
+        // Poll for player count updates
+        function updatePlayerCount() {
+            fetch('/api/players')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('player-count').textContent = data.count;
+                    
+                    // Update player list
+                    const playerList = document.getElementById('player-list');
+                    const noPlayersMessage = document.getElementById('no-players-message');
+                    
+                    if (data.players.length > 0) {
+                        noPlayersMessage.style.display = 'none';
+                        playerList.innerHTML = '';
+                        
+                        data.players.forEach(player => {
+                            const playerItem = document.createElement('div');
+                            playerItem.textContent = player;
+                            playerItem.style.padding = '5px';
+                            playerItem.style.borderBottom = '1px solid #eee';
+                            playerList.appendChild(playerItem);
+                        });
+                    } else {
+                        noPlayersMessage.style.display = 'block';
+                    }
+                })
+                .catch(error => console.error('Error fetching player count:', error));
+        }
+        
+        // Start polling when page loads
+        setInterval(updatePlayerCount, 3000);
+        updatePlayerCount(); // Initial update
+        
+        // Begin game button handler
+        document.getElementById('start-game-btn').addEventListener('click', function() {
+            const playerCount = parseInt(document.getElementById('player-count').textContent);
+            
+            if (playerCount < 2) {
+                alert('You need at least 2 players to start the game.');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to start the game? No new players will be able to join.')) {
+                // Show modal
+                document.getElementById('modal').style.display = 'block';
+                
+                // Start the game after a delay
+                setTimeout(() => {
+                    fetch('/api/start-game', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('modal-title').textContent = 'Cards Assigned!';
+                            document.getElementById('modal-message').textContent = 'All players have received their cards. Redirecting to game...';
+                            
+                            // Redirect after showing the message
+                            setTimeout(() => {
+                                window.location.href = '/game';
+                            }, 2000);
+                        } else {
+                            alert('Error: ' + data.message);
+                            document.getElementById('modal').style.display = 'none';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error starting game:', error);
+                        alert('Error starting game. Please try again.');
+                        document.getElementById('modal').style.display = 'none';
+                    });
+                }, 3000); // Show "Assigning Cards" for 3 seconds
+            }
+        });
+    </script>
 </body>
 </html>

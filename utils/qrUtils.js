@@ -1,7 +1,7 @@
-const QRCode = require('qrcode');
+import QRCode from 'qrcode';
 
 // Generate QR code and return as base64 string
-exports.generateQRCode = (data, callback) => {
+export function generateQRCode(data, callback) {
     QRCode.toDataURL(data, (err, url) => {
         if (err) {
             console.error("Error generating QR code", err);
@@ -10,4 +10,6 @@ exports.generateQRCode = (data, callback) => {
         }
         callback(url); // Return the base64 encoded image URL
     });
-};
+}
+
+export default { generateQRCode };
