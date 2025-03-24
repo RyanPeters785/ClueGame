@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clue Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+        .game-container {
+            margin: 20px auto;
+            max-width: 800px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .player-info {
+            font-size: 18px;
+            margin-bottom: 20px;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .cards-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .card {
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 10px;
+            width: 120px;
+            height: 160px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .suspect-card {
+            background-color: #ffeded;
+            border-color: #ff9999;
+        }
+        .weapon-card {
+            background-color: #edffed;
+            border-color: #99ff99;
+        }
+        .room-card {
+            background-color: #ededff;
+            border-color: #9999ff;
+        }
+        .card-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        h2 {
+            color: #333;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Clue Game</h1>
+    
+    <div class="player-info">
+        Playing as: <strong><%= playerName %></strong>
+    </div>
+    
+    <div class="game-container">
+        <h2>Your Cards</h2>
+        
+        <div class="cards-container">
+            <% playerCards.forEach(card => { %>
+                <% 
+                    let cardType = '';
+                    if (["Colonel Mustard", "Professor Plum", "Mr. Green", "Mrs. Peacock", "Miss Scarlet", "Mrs. White"].includes(card)) {
+                        cardType = 'suspect-card';
+                    } else if (["Candlestick", "Knife", "Lead Pipe", "Revolver", "Rope", "Wrench"].includes(card)) {
+                        cardType = 'weapon-card';
+                    } else {
+                        cardType = 'room-card';
+                    }
+                %>
+                <div class="card <%= cardType %>">
+                    <div class="card-title">
+                        <%= 
+                            cardType === 'suspect-card' ? 'Suspect' : 
+                            cardType === 'weapon-card' ? 'Weapon' : 'Room' 
+                        %>
+                    </div>
+                    <%= card %>
+                </div>
+            <% }); %>
+        </div>
+        
+        <% if (playerCards.length === 0) { %>
+            <p>You don't have any cards.</p>
+        <% } %>
+    </div>
+</body>
+</html>
