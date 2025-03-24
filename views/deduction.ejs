@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detective Notes - Clue Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+        .notes-container {
+            margin: 20px auto;
+            max-width: 800px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .player-info {
+            font-size: 18px;
+            margin-bottom: 20px;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .section {
+            margin: 30px 0;
+            text-align: left;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
+        }
+        .item {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            transition: all 0.3s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .item.crossed {
+            background-color: #eaeaea;
+            text-decoration: line-through;
+            color: #999;
+        }
+        .item-checkbox {
+            margin-right: 10px;
+        }
+        .back-button {
+            background-color: #4a6ea9;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .back-button:hover {
+            background-color: #3a5a8f;
+        }
+        .notes-area {
+            margin-top: 30px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            min-height: 100px;
+            resize: vertical;
+        }
+        .suspect-section {
+            background-color: #ffeded;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .weapon-section {
+            background-color: #edffed;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .room-section {
+            background-color: #ededff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Detective Notes</h1>
+    
+    <div class="player-info">
+        Playing as: <strong><%= playerName %></strong>
+    </div>
+    
+    <div class="notes-container">
+        <div class="section suspect-section">
+            <div class="section-title">SUSPECTS</div>
+            <div class="grid-container">
+                <% suspects.forEach(suspect => { %>
+                    <div class="item <%= playerCards.includes(suspect) ? 'crossed' : '' %>" data-item="<%= suspect %>" onclick="toggleItem(this)">
+                        <input type="checkbox" class="item-checkbox" <%= playerCards.includes(suspect) ? 'checked disabled' : '' %>>
+                        <%= suspect %>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+        
+        <div class="section weapon-section">
+            <div class="section-title">WEAPONS</div>
+            <div class="grid-container">
+                <% weapons.forEach(weapon => { %>
+                    <div class="item <%= playerCards.includes(weapon) ? 'crossed' : '' %>" data-item="<%= weapon %>" onclick="toggleItem(this)">
+                        <input type="checkbox" class="item-checkbox" <%= playerCards.includes(weapon) ? 'checked disabled' : '' %>>
+                        <%= weapon %>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+        
+        <div class="section room-section">
+            <div class="section-title">ROOMS</div>
+            <div class="grid-container">
+                <% rooms.forEach(room => { %>
+                    <div class="item <%= playerCards.includes(room) ? 'crossed' : '' %>" data-item="<%= room %>" onclick="toggleItem(this)">
+                        <input type="checkbox" class="item-checkbox" <%= playerCards.includes(room) ? 'checked disabled' : '' %>>
+                        <%= room %>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">ADDITIONAL NOTES</div>
+            <textarea class="notes-area" placeholder="Write your additional deductions and notes here..."></textarea>
+        </div>
+        
+        <button class="back-button" onclick="window.location.href='/game'">Back to Your Cards</button>
+    </div>
+    
+    <script>
+        // Load saved state from localStorage on page load
+        window.onload = function() {
+            const savedNotes = localStorage.getItem('clueNotes_<%= playerName %>');
+            if (savedNotes) {
+                document.querySelector('.notes-area').value = savedNotes;
+            }
+            
+            // Load checked states
+            const checkedItems = JSON.parse(localStorage.getItem('clueCheckedItems_<%= playerName %>') || '[]');
+            checkedItems.forEach(item => {
+                const element = document.querySelector(`.item[data-item="${item}"]`);
+                if (element && !element.classList.contains('crossed')) {
+                    element.classList.add('crossed');
+                    element.querySelector('.item-checkbox').checked = true;
+                }
+            });
+        };
+        
+        // Toggle item crossed state
+        function toggleItem(element) {
+            // Skip if item is already crossed due to being in player's hand
+            if (element.classList.contains('crossed') && element.querySelector('.item-checkbox').disabled) {
+                return;
+            }
+            
+            element.classList.toggle('crossed');
+            const checkbox = element.querySelector('.item-checkbox');
+            checkbox.checked = !checkbox.checked;
+            
+            saveState();
+        }
+        
+        // Save notes and checked items to localStorage
+        function saveState() {
+            const notes = document.querySelector('.notes-area').value;
+            localStorage.setItem('clueNotes_<%= playerName %>', notes);
+            
+            const checkedItems = [];
+            document.querySelectorAll('.item.crossed').forEach(item => {
+                if (!item.querySelector('.item-checkbox').disabled) {
+                    checkedItems.push(item.dataset.item);
+                }
+            });
+            localStorage.setItem('clueCheckedItems_<%= playerName %>', JSON.stringify(checkedItems));
+        }
+        
+        // Save notes on input
+        document.querySelector('.notes-area').addEventListener('input', saveState);
+    </script>
+</body>
+</html>

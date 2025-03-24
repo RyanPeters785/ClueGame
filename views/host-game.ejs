@@ -28,23 +28,6 @@
             background-color: white;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        .solution-container {
-            background-color: #333;
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px auto;
-            max-width: 400px;
-        }
-        .solution-title {
-            font-weight: bold;
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-        .solution-item {
-            margin: 10px 0;
-            font-size: 16px;
-        }
         .players-list {
             display: flex;
             flex-wrap: wrap;
@@ -69,18 +52,30 @@
             color: #333;
             margin-top: 40px;
         }
+        .game-board {
+            margin-top: 30px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #f5f5dc;
+        }
+        .game-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #8b0000;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="host-label">HOST VIEW</div>
-    <h1>Clue Game - Host Controls</h1>
+    <h1>Clue Game - Game Board</h1>
     
     <div class="game-container">
-        <div class="solution-container">
-            <div class="solution-title">THE SOLUTION</div>
-            <div class="solution-item">Suspect: <%= solution.suspect %></div>
-            <div class="solution-item">Weapon: <%= solution.weapon %></div>
-            <div class="solution-item">Room: <%= solution.room %></div>
+        <div class="game-board">
+            <div class="game-title">CLUE</div>
+            <p>The classic detective game is now in progress!</p>
+            <p>Each player has received their cards and is making deductions.</p>
         </div>
         
         <h2>Players in Game</h2>

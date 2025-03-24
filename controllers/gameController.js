@@ -164,9 +164,8 @@ export function gamePage(req, res) {
     // Host view
     if (req.session.id === hostSessionId) {
         return res.render('host-game', { 
-            players, 
-            solution,
-            hostCards: playerCards['host'] || []
+            players
+            // Solution is removed from the host view
         });
     }
     
@@ -182,4 +181,30 @@ export function gamePage(req, res) {
     });
 }
 
-export default { home, loginPage, submitName, getPlayerCount, startGame, gamePage };
+// Deduction page for player notes
+export function deductionPage(req, res) {
+    if (!gameStarted) {
+        return res.redirect('/');
+    }
+    
+    // Redirect host to game page
+    if (req.session.id === hostSessionId) {
+        return res.redirect('/game');
+    }
+    
+    // Player view
+    const playerName = req.session.playerName;
+    if (!playerName || !players.includes(playerName)) {
+        return res.redirect('/login');
+    }
+    
+    res.render('deduction', { 
+        playerName,
+        playerCards: playerCards[playerName] || [],
+        suspects: cards.suspects,
+        weapons: cards.weapons,
+        rooms: cards.rooms
+    });
+}
+
+export default { home, loginPage, submitName, getPlayerCount, startGame, gamePage, deductionPage };

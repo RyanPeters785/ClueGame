@@ -54,11 +54,12 @@ app.post('/login', gameController.submitName);
 app.get('/api/players', gameController.getPlayerCount);
 app.post('/api/start-game', gameController.startGame);
 app.get('/game', gameController.gamePage);
+app.get('/deduction', gameController.deductionPage);  // New route for deduction page
 
 // Start the server
 app.listen(port, () => {
     console.log(`Server running at http://${localIP}:${port}`);
     
     // Open the QR page automatically in Chrome browser
-    open(`http://${localIP}:${port}`, {app: {name: 'google chrome'}});
+    open(`http://${localIP}:${port}`, {app: {name: 'chrome'}});
 });

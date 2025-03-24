@@ -3,22 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clue Game</title>
+    <title>Your Clue Cards</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             padding: 20px;
             background-color: #f0f8ff;
-        }
-        .game-container {
-            margin: 20px auto;
-            max-width: 800px;
-            border: 1px solid #ddd;
-            padding: 20px;
-            border-radius: 8px;
-            background-color: white;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         .player-info {
             font-size: 18px;
@@ -32,7 +23,7 @@
             flex-wrap: wrap;
             justify-content: center;
             gap: 15px;
-            margin-top: 30px;
+            margin: 30px auto;
         }
         .card {
             border: 2px solid #333;
@@ -67,65 +58,74 @@
             font-weight: bold;
             margin-bottom: 10px;
         }
-        h2 {
-            color: #333;
-            margin-top: 40px;
-        }
         .next-button {
+            padding: 12px 30px;
             background-color: #4CAF50;
             color: white;
-            padding: 12px 30px;
             border: none;
             border-radius: 4px;
             font-size: 16px;
             cursor: pointer;
             margin-top: 30px;
-            transition: background-color 0.3s;
         }
         .next-button:hover {
             background-color: #45a049;
         }
+        .instruction {
+            margin: 20px auto;
+            max-width: 600px;
+            padding: 15px;
+            background-color: #fffde7;
+            border-left: 4px solid #ffc107;
+            text-align: left;
+        }
+        h1, h2 {
+            color: #333;
+        }
     </style>
 </head>
 <body>
-    <h1>Clue Game</h1>
+    <h1>Your Clue Game Cards</h1>
     
     <div class="player-info">
         Playing as: <strong><%= playerName %></strong>
     </div>
     
-    <div class="game-container">
-        <h2>Your Cards</h2>
-        
-        <div class="cards-container">
-            <% playerCards.forEach(card => { %>
-                <% 
-                    let cardType = '';
-                    if (["Colonel Mustard", "Professor Plum", "Mr. Green", "Mrs. Peacock", "Miss Scarlet", "Mrs. White"].includes(card)) {
-                        cardType = 'suspect-card';
-                    } else if (["Candlestick", "Knife", "Lead Pipe", "Revolver", "Rope", "Wrench"].includes(card)) {
-                        cardType = 'weapon-card';
-                    } else {
-                        cardType = 'room-card';
-                    }
-                %>
-                <div class="card <%= cardType %>">
-                    <div class="card-title">
-                        <%= 
-                            cardType === 'suspect-card' ? 'Suspect' : 
-                            cardType === 'weapon-card' ? 'Weapon' : 'Room' 
-                        %>
-                    </div>
-                    <%= card %>
-                </div>
-            <% }); %>
-        </div>
-        
-        <% if (playerCards.length === 0) { %>
-            <p>You don't have any cards.</p>
-        <% } %>
-        
-        <button class="next-button" onclick="window.location.href='/deduction'">Next: Go to Detective Notes</button>
+    <div class="instruction">
+        <p>These are your cards for this game of Clue. You know that these cards are <strong>not</strong> part of the solution. 
+        Remember your cards as you'll need this information during gameplay.</p>
+        <p>After you've memorized your cards, click "I'm Ready" to proceed to the game.</p>
     </div>
-</body>
-</html>
+    
+    <div class="cards-container">
+        <% playerCards.forEach(card => { %>
+            <% 
+                let cardType = '';
+                if (["Colonel Mustard", "Professor Plum", "Mr. Green", "Mrs. Peacock", "Miss Scarlet", "Mrs. White"].includes(card)) {
+                    cardType = 'suspect-card';
+                } else if (["Candlestick", "Knife", "Lead Pipe", "Revolver", "Rope", "Wrench"].includes(card)) {
+                    cardType = 'weapon-card';
+                } else {
+                    cardType = 'room-card';
+                }
+            %>
+            <div class="card <%= cardType %>">
+                <div class="card-title">
+                    <%= 
+                        cardType === 'suspect-card' ? 'Suspect' : 
+                        cardType === 'weapon-card' ? 'Weapon' : 'Room' 
+                    %>
+                </div>
+                <%= card %>
+            </div>
+        <% }); %>
+    </div>
+    
+    <% if (playerCards.length === 0) { %>
+        <p>You don't have any cards.</p>
+    <% } %>
+    
+    <button id="ready-button" class="next-button">I'm Ready</button>
+
+    <script>
+        document.getElementByI
