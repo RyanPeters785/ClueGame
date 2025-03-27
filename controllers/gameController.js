@@ -70,10 +70,8 @@ function getCurrentTurn() {
   return turnOrder[currentTurnIndex] || null;
 }
 
-// Home page with QR code (host view)
+// Modified home function to handle game state more robustly
 export function home(req, res) {
-    // Reset game state when host starts a new game
-    resetGameState();
     
     // Set this session as the host if not already set
     if (!hostSessionId) {
@@ -102,16 +100,22 @@ export function home(req, res) {
     });
 }
 
-// Login page for entering player name
+// Modified loginPage function to handle existing game state
 export function loginPage(req, res) {
+    // If game has already started and user is not a player, prevent login
+    if (gameStarted) {
+        if (req.session.playerName && players.includes(req.session.playerName)) {
+            return res.redirect('/waiting');
+        } else if (req.session.id === hostSessionId) {
+            return res.redirect('/game');
+        } else {
+            return res.send("Sorry, the game has already started!");
+        }
+    }
+    
     // Don't allow the host to also be a player
     if (req.session.id === hostSessionId) {
         return res.redirect('/');
-    }
-    
-    // If game already started, show message
-    if (gameStarted) {
-        return res.send("Sorry, the game has already started!");
     }
     
     // If player is already logged in, redirect to waiting page
@@ -244,6 +248,7 @@ export function waitingPage(req, res) {
     if (req.session.playerName && players.includes(req.session.playerName)) {
         res.render('waiting', { playerName: req.session.playerName });
     } else {
+        console.log('redirecting to login page')
         res.redirect('/login');
     }
 }
