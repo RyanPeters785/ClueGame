@@ -152,7 +152,8 @@ export function submitName(req, res) {
     // Store in session
     req.session.playerName = playerName;
     
-    res.render('waiting', { playerName });
+    // Redirect to waiting page instead of rendering
+    res.redirect('/waiting');
 }
 
 // Start game with turn management
