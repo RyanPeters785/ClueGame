@@ -1,4 +1,4 @@
-// handles logic for generating pages
+// controllers/gameController.js
 import qrUtils from '../utils/qrUtils.js';
 
 // Store players and game state
@@ -6,6 +6,12 @@ const players = [];
 let gameStarted = false;
 let hostSessionId = null;
 const playerCards = {};
+
+// Turn management
+let currentTurnIndex = 0;
+const turnOrder = [];
+const turnDuration = 10000; // 10 seconds per turn
+let turnTimeout = null;
 
 // Clue game cards
 const cards = {
@@ -21,8 +27,54 @@ const solution = {
   room: null
 };
 
+// Reset game state
+function resetGameState() {
+  players.length = 0;
+  gameStarted = false;
+  hostSessionId = null;
+  currentTurnIndex = 0;
+  turnOrder.length = 0;
+  
+  if (turnTimeout) {
+    clearTimeout(turnTimeout);
+    turnTimeout = null;
+  }
+}
+
+// Start turn rotation
+function startTurnRotation() {
+  turnOrder.push(...players);
+  advanceTurn();
+}
+
+// Advance to next turn
+function advanceTurn() {
+  if (turnOrder.length === 0) return;
+  
+  const currentPlayer = turnOrder[currentTurnIndex];
+  
+  // Reset timeout if exists
+  if (turnTimeout) {
+    clearTimeout(turnTimeout);
+  }
+  
+  // Set timeout for next turn
+  turnTimeout = setTimeout(() => {
+    currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+    advanceTurn();
+  }, turnDuration);
+}
+
+// Getter for current turn
+function getCurrentTurn() {
+  return turnOrder[currentTurnIndex] || null;
+}
+
 // Home page with QR code (host view)
 export function home(req, res) {
+    // Reset game state when host starts a new game
+    resetGameState();
+    
     // Set this session as the host if not already set
     if (!hostSessionId) {
         hostSessionId = req.session.id;
@@ -71,15 +123,6 @@ export function loginPage(req, res) {
     res.render('login');
 }
 
-// Waiting page after player submits name
-export function waitingPage(req, res) {
-    if (req.session.playerName && players.includes(req.session.playerName)) {
-        res.render('waiting', { playerName: req.session.playerName });
-    } else {
-        res.redirect('/login');
-    }
-}
-
 // Submit player name and redirect to a waiting page
 export function submitName(req, res) {
     if (gameStarted) {
@@ -112,21 +155,10 @@ export function submitName(req, res) {
     res.render('waiting', { playerName });
 }
 
-
-// API endpoint to get current player count
-export function getPlayerCount(req, res) {
-    res.json({ count: players.length, players: players });
-}
-
-// Check if requester is host
-function isRequestFromHost(req) {
-    return req.session.id === hostSessionId;
-}
-
-// API endpoint to start the game
+// Start game with turn management
 export function startGame(req, res) {
     // Only the host can start the game
-    if (!isRequestFromHost(req)) {
+    if (req.session.id !== hostSessionId) {
         return res.status(403).json({ success: false, message: "Only the host can start the game" });
     }
     
@@ -170,36 +202,17 @@ export function startGame(req, res) {
         currentPlayer++;
     }
     
-    res.json({ success: true, message: "Game started!" });
+    // Start turn rotation
+    startTurnRotation();
+    
+    res.json({ success: true, message: "Game started!", firstPlayer: getCurrentTurn() });
 }
 
-// Game page after the game has started
-export function gamePage(req, res) {
-    if (!gameStarted) {
-        return res.redirect('/');
-    }
-    
-    // Host view
-    if (req.session.id === hostSessionId) {
-        return res.render('host-game', { 
-            players
-            // Solution is removed from the host view
-        });
-    }
-    
-    // Player view
-    const playerName = req.session.playerName;
-    if (!playerName || !players.includes(playerName)) {
-        return res.redirect('/login');
-    }
-    
-    res.render('game', { 
-        playerName,
-        playerCards: playerCards[playerName] || []
-    });
+// API endpoint to get current player count
+export function getPlayerCount(req, res) {
+    res.json({ count: players.length, players: players });
 }
 
-// Deduction page for player notes
 export function deductionPage(req, res) {
     if (!gameStarted) {
         return res.redirect('/');
@@ -225,5 +238,56 @@ export function deductionPage(req, res) {
     });
 }
 
-export default { home, loginPage, submitName, getPlayerCount, startGame, gamePage, deductionPage, waitingPage };
+// Waiting page after player submits name
+export function waitingPage(req, res) {
+    if (req.session.playerName && players.includes(req.session.playerName)) {
+        res.render('waiting', { playerName: req.session.playerName });
+    } else {
+        res.redirect('/login');
+    }
+}
 
+
+// Modified game page to include current turn information
+export function gamePage(req, res) {
+    if (!gameStarted) {
+        return res.redirect('/');
+    }
+    
+    // Host view
+    if (req.session.id === hostSessionId) {
+        return res.render('host-game', { 
+            players,
+            currentTurn: getCurrentTurn()
+        });
+    }
+    
+    // Player view
+    const playerName = req.session.playerName;
+    if (!playerName || !players.includes(playerName)) {
+        return res.redirect('/login');
+    }
+    
+    res.render('game', { 
+        playerName,
+        playerCards: playerCards[playerName] || [],
+        currentTurn: getCurrentTurn()
+    });
+}
+
+// Expose methods for turn management
+export function getCurrentPlayer() {
+    return getCurrentTurn();
+}
+
+export default { 
+    home, 
+    loginPage, 
+    submitName, 
+    getPlayerCount, 
+    startGame, 
+    gamePage, 
+    deductionPage, 
+    waitingPage,
+    getCurrentPlayer 
+};

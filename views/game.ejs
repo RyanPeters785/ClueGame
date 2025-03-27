@@ -84,6 +84,30 @@
         }
         .next-button:hover {
             background-color: #45a049;
+        } 
+        .current-turn {
+            background-color: #f0f0f0;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .turn-notification {
+            background-color: #e7f3fe;
+            border: 1px solid #b6d4fe;
+            color: #0062cc;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .waiting-notification {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
         }
     </style>
 </head>
@@ -119,6 +143,20 @@
                     <%= card %>
                 </div>
             <% }); %>
+        </div>
+
+        <div class="current-turn">
+            <h3>Current Turn</h3>
+            <p>It's <strong><%= currentTurn %>'s</strong> turn</p>
+            <% if (playerName === currentTurn) { %>
+                <div class="turn-notification">
+                    <p>It's your turn! Make your move.</p>
+                </div>
+            <% else { %>
+                <div class="waiting-notification">
+                    <p>Waiting for <%= currentTurn %> to make a move...</p>
+                </div>
+            <% } %>
         </div>
         
         <% if (playerCards.length === 0) { %>

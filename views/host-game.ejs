@@ -64,6 +64,29 @@
             font-weight: bold;
             color: #8b0000;
             margin-bottom: 20px;
+        }.current-turn {
+            background-color: #f0f0f0;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .turn-notification {
+            background-color: #e7f3fe;
+            border: 1px solid #b6d4fe;
+            color: #0062cc;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .waiting-notification {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
         }
     </style>
 </head>
@@ -90,6 +113,8 @@
         
         <h2>Game Status</h2>
         <p>The game has started and cards have been dealt to all players.</p>
+        <h2>Current Turn</h2>
+        <p>Current Player: <strong><%= currentTurn %></strong></p>
     </div>
 </body>
 </html>

@@ -57,6 +57,7 @@ app.get('/game', gameController.gamePage);
 app.get('/deduction', gameController.deductionPage);  // New route for deduction page
 app.get('/waiting', gameController.waitingPage);
 
+
 // Start the server
 app.listen(port, () => {
     console.log(`Server running at http://${localIP}:${port}`);
