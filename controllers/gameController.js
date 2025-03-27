@@ -57,10 +57,27 @@ export function loginPage(req, res) {
         return res.redirect('/');
     }
     
+    // If game already started, show message
     if (gameStarted) {
         return res.send("Sorry, the game has already started!");
     }
+    
+    // If player is already logged in, redirect to waiting page
+    if (req.session.playerName && players.includes(req.session.playerName)) {
+        return res.redirect('/waiting');
+    }
+    
+    // Otherwise, show login page
     res.render('login');
+}
+
+// Waiting page after player submits name
+export function waitingPage(req, res) {
+    if (req.session.playerName && players.includes(req.session.playerName)) {
+        res.render('waiting', { playerName: req.session.playerName });
+    } else {
+        res.redirect('/login');
+    }
 }
 
 // Submit player name and redirect to a waiting page
@@ -94,6 +111,7 @@ export function submitName(req, res) {
     
     res.render('waiting', { playerName });
 }
+
 
 // API endpoint to get current player count
 export function getPlayerCount(req, res) {
@@ -207,4 +225,5 @@ export function deductionPage(req, res) {
     });
 }
 
-export default { home, loginPage, submitName, getPlayerCount, startGame, gamePage, deductionPage };
+export default { home, loginPage, submitName, getPlayerCount, startGame, gamePage, deductionPage, waitingPage };
+

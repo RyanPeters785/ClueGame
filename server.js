@@ -55,13 +55,7 @@ app.get('/api/players', gameController.getPlayerCount);
 app.post('/api/start-game', gameController.startGame);
 app.get('/game', gameController.gamePage);
 app.get('/deduction', gameController.deductionPage);  // New route for deduction page
-app.get('/waiting', (req, res) => {
-    if (req.session.playerName && players.includes(req.session.playerName)) {
-        res.render('waiting', { playerName: req.session.playerName });
-    } else {
-        res.redirect('/login');
-    }
-});
+app.get('/waiting', gameController.waitingPage);
 
 // Start the server
 app.listen(port, () => {
