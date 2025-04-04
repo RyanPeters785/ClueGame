@@ -13,6 +13,9 @@ const turnOrder = [];
 const turnDuration = 10000; // 10 seconds per turn
 let turnTimeout = null;
 
+// Suggestion tracking
+let currentSuggestion = null;
+
 // Clue game cards
 const cards = {
   suspects: ["Colonel Mustard", "Professor Plum", "Mr. Green", "Mrs. Peacock", "Miss Scarlet", "Mrs. White"],
@@ -39,6 +42,9 @@ function resetGameState() {
     clearTimeout(turnTimeout);
     turnTimeout = null;
   }
+
+  playerEliminatedCards = {};
+  currentSuggestion = null;
 }
 
 // Start turn rotation
@@ -69,6 +75,151 @@ function advanceTurn() {
 function getCurrentTurn() {
   return turnOrder[currentTurnIndex] || null;
 }
+
+// Submit a suggestion during a player's turn
+export function submitSuggestion(req, res) {
+    const { suspect, weapon, room } = req.body;
+    const playerName = req.session.playerName;
+  
+    // Validate the suggestion
+    if (!gameStarted || playerName !== getCurrentTurn()) {
+      return res.status(403).json({ success: false, message: "It's not your turn" });
+    }
+  
+    // Create the suggestion
+    currentSuggestion = { 
+      suggester: playerName, 
+      suspect, 
+      weapon, 
+      room,
+      refutedBy: null
+    };
+  
+    // Find next player who can potentially refute
+    const suggesterIndex = players.indexOf(playerName);
+    let refuterIndex = (suggesterIndex + 1) % players.length;
+    
+    while (refuterIndex !== suggesterIndex) {
+      const potentialRefuter = players[refuterIndex];
+      const refuterCards = playerCards[potentialRefuter];
+      
+      // Check if this player can refute
+      const refutingCard = refuterCards.find(card => 
+        card === suspect || card === weapon || card === room
+      );
+  
+      if (refutingCard) {
+        return res.json({ 
+          success: true, 
+          message: "Suggestion made", 
+          nextPlayer: potentialRefuter,
+          canRefute: true
+        });
+      }
+  
+      refuterIndex = (refuterIndex + 1) % players.length;
+    }
+  
+    // No one can refute
+    return res.json({ 
+      success: true, 
+      message: "No one can refute the suggestion", 
+      nextPlayer: getCurrentTurn()
+    });
+  }
+
+// Respond to a suggestion (show a card or pass)
+export function respondToSuggestion(req, res) {
+    const { card } = req.body;
+    const playerName = req.session.playerName;
+  
+    // Validate the response
+    if (!currentSuggestion || currentSuggestion.refutedBy) {
+      return res.status(403).json({ success: false, message: "No active suggestion" });
+    }
+  
+    // Check if the player can actually show this card
+    const playerMatchingCards = playerCards[playerName].filter(
+      c => c === currentSuggestion.suspect || 
+           c === currentSuggestion.weapon || 
+           c === currentSuggestion.room
+    );
+  
+    if (card && !playerMatchingCards.includes(card)) {
+      return res.status(403).json({ success: false, message: "Invalid card" });
+    }
+  
+    // Update suggestion
+    if (card) {
+      currentSuggestion.refutedBy = {
+        player: playerName,
+        card: card
+      };
+      
+      // Track eliminated cards for this player
+      if (!playerEliminatedCards[playerName]) {
+        playerEliminatedCards[playerName] = [];
+      }
+      
+      // Add not-solution cards to eliminated list
+      [currentSuggestion.suspect, currentSuggestion.weapon, currentSuggestion.room]
+        .forEach(suggestionCard => {
+          if (suggestionCard !== card && 
+              !playerEliminatedCards[playerName].includes(suggestionCard)) {
+            playerEliminatedCards[playerName].push(suggestionCard);
+          }
+        });
+    }
+  
+    // Advance turn
+    currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+  
+    res.json({ 
+      success: true, 
+      message: "Response recorded", 
+      nextPlayer: getCurrentTurn(),
+      eliminatedCards: playerEliminatedCards[playerName] || []
+    });
+  }
+
+  // Get eliminated cards for a player
+  export function getEliminatedCards(req, res) {
+    const playerName = req.session.playerName;
+    res.json({ 
+      eliminatedCards: playerEliminatedCards[playerName] || [],
+      currentSuggestion: currentSuggestion
+    });
+  }
+
+// Update game page to include suggestion and response functionality
+export function gamePage(req, res) {
+    if (!gameStarted) {
+      return res.redirect('/');
+    }
+    
+    // Host view
+    if (req.session.id === hostSessionId) {
+      return res.render('host-game', { 
+        players,
+        currentTurn: getCurrentTurn()
+      });
+    }
+    
+    // Player view
+    const playerName = req.session.playerName;
+    if (!playerName || !players.includes(playerName)) {
+      return res.redirect('/login');
+    }
+    
+    res.render('game', { 
+      playerName,
+      playerCards: playerCards[playerName] || [],
+      currentTurn: getCurrentTurn(),
+      suspects: cards.suspects,
+      weapons: cards.weapons,
+      rooms: cards.rooms
+    });
+  }
 
 // Modified home function to handle game state more robustly
 export function home(req, res) {
@@ -248,37 +399,8 @@ export function waitingPage(req, res) {
     if (req.session.playerName && players.includes(req.session.playerName)) {
         res.render('waiting', { playerName: req.session.playerName });
     } else {
-        console.log('redirecting to login page')
         res.redirect('/login');
     }
-}
-
-
-// Modified game page to include current turn information
-export function gamePage(req, res) {
-    if (!gameStarted) {
-        return res.redirect('/');
-    }
-    
-    // Host view
-    if (req.session.id === hostSessionId) {
-        return res.render('host-game', { 
-            players,
-            currentTurn: getCurrentTurn()
-        });
-    }
-    
-    // Player view
-    const playerName = req.session.playerName;
-    if (!playerName || !players.includes(playerName)) {
-        return res.redirect('/login');
-    }
-    
-    res.render('game', { 
-        playerName,
-        playerCards: playerCards[playerName] || [],
-        currentTurn: getCurrentTurn()
-    });
 }
 
 // Expose methods for turn management
@@ -295,5 +417,8 @@ export default {
     gamePage, 
     deductionPage, 
     waitingPage,
-    getCurrentPlayer 
+    getCurrentPlayer,
+    submitSuggestion, 
+    respondToSuggestion, 
+    getEliminatedCards
 };

@@ -56,6 +56,9 @@ app.post('/api/start-game', gameController.startGame);
 app.get('/game', gameController.gamePage);
 app.get('/deduction', gameController.deductionPage);  // New route for deduction page
 app.get('/waiting', gameController.waitingPage);
+app.post('/api/submit-suggestion', gameController.submitSuggestion);
+app.post('/api/respond-suggestion', gameController.respondToSuggestion);
+app.get('/api/eliminated-cards', gameController.getEliminatedCards);
 
 
 // Start the server
