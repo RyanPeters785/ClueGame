@@ -52,7 +52,13 @@
             transform: translateY(-5px);
         }
         .suspect-card {
-            background-color: #ffeded;
+            border-color: #ff9999;
+            background-color: #fff;
+        }
+        .card.suspect-card-image {
+            background-size: cover;
+            background-position: center;
+            padding: 0;
             border-color: #ff9999;
         }
         .weapon-card {
@@ -178,28 +184,29 @@
         <h2>Your Cards</h2>
         
         <div class="cards-container">
-            <% playerCards.forEach(card => { %>
-                <% 
-                    let cardType = '';
-                    if (["Colonel Mustard", "Professor Plum", "Mr. Green", "Mrs. Peacock", "Miss Scarlet", "Mrs. White"].includes(card)) {
-                        cardType = 'suspect-card';
-                    } else if (["Candlestick", "Knife", "Lead Pipe", "Revolver", "Rope", "Wrench"].includes(card)) {
-                        cardType = 'weapon-card';
-                    } else {
-                        cardType = 'room-card';
-                    }
-                %>
+            <% playerCards.forEach(card => {
+              let cardType = 'room-card';
+              let isSuspect = ["Colonel Mustard", "Professor Plum", "Mr. Green", "Mrs. Peacock", "Miss Scarlet", "Mrs. White"].includes(card);
+              let isWeapon = ["Candlestick", "Knife", "Lead Pipe", "Revolver", "Rope", "Wrench"].includes(card);
+              if (isSuspect) cardType = 'suspect-card';
+              else if (isWeapon) cardType = 'weapon-card';
+          
+              if (cardType === 'suspect-card') { %>
+                <% const imageUrl = '/images/cards/' + encodeURIComponent(card) + '.png'; %>
+                <div class="card <%= cardType %> suspect-card-image" style="background-image: url('<%= imageUrl %>');">
+                </div>             
+              <% } else { %>
                 <div class="card <%= cardType %>">
-                    <div class="card-title">
-                        <%= 
-                            cardType === 'suspect-card' ? 'Suspect' : 
-                            cardType === 'weapon-card' ? 'Weapon' : 'Room' 
-                        %>
-                    </div>
-                    <%= card %>
+                  <div class="card-title">
+                    <%= cardType === 'weapon-card' ? 'Weapon' : 'Room' %>
+                  </div>
+                  <%= card %>
                 </div>
-            <% }); %>
+              <% }
+            }); %>
         </div>
+          
+          
 
         <div class="current-turn">
             <h3>Current Turn</h3>
