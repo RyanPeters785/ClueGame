@@ -211,7 +211,6 @@ export function startGame(req, res) {
   }
   
   // Deal cards to players
-  playerCards['host'] = []; // Host gets cards too for display purposes
   players.forEach(player => {
       playerCards[player] = [];
   });
@@ -255,6 +254,8 @@ function startTurnRotation() {
 function advanceTurn() {
   if (turnOrder.length === 0) return;
   
+  currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+
   // Log the current turn for debugging
   console.log(`It's now ${turnOrder[currentTurnIndex]}'s turn.`);
   
@@ -334,11 +335,11 @@ export function submitSuggestion(req, res) {
     // Automatically advance turn after a delay
     setTimeout(() => {
       manualAdvanceTurn();
-    }, 5000);
+    }, 100);
     
     return res.json({ 
       success: true, 
-      message: "No one can refute the suggestion", 
+      message: `${playerName} Won!`,
       canRefute: false,
       nextPlayer: getCurrentTurn()
     });
@@ -408,7 +409,7 @@ export function respondToSuggestion(req, res) {
       currentTurnIndex = turnOrder.indexOf(currentSuggestion.suggester);
       currentSuggestion = null; // Clear the suggestion
       advanceTurn();
-    }, 3000);
+    }, 1000);
     
     return res.json({ 
       success: true, 

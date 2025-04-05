@@ -306,9 +306,7 @@
                             resultDiv.classList.remove('hidden');
                             
                             if (data.canRefute) {
-                                resultDiv.innerHTML = `<div class="turn-notification">
-                                    Your suggestion has been made. Waiting for ${data.nextPlayer} to respond...
-                                </div>`;
+                                resultDiv.innerHTML = `<div class="turn-notification">${data.message}</div>`;
                                 // Disable the form
                                 suggestionForm.querySelectorAll('input, button').forEach(el => el.disabled = true);
                                 
