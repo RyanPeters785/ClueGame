@@ -24,7 +24,7 @@ app.use(session({
     saveUninitialized: true
 }));
 
-app.use(express.static(path.join(__dirname, 'public'))); // tells app (express) to serve static files (images, CSS, JS) from folder named 'piblic'
+app.use(express.static(path.join(__dirname, 'public'))); // tells app (express) to serve static files (images, CSS, JS) from folder named 'public'
 
 // Middleware for parsing the request body
 app.use(express.urlencoded({ extended: true })); // parse HTML form data

@@ -51,30 +51,43 @@
         .card:hover {
             transform: translateY(-5px);
         }
-        .suspect-card {
-            border-color: #ff9999;
-            background-color: #fff;
+        .card.card-image::before {
+            content: "";
+            display: block;
+            padding-top: 100%; /* Forces a square area as placeholder */
         }
-        .card.suspect-card-image {
+        .card-image {
             background-size: cover;
             background-position: center;
             padding: 0; /* Remove padding to let image fill the entire card */
-            border-color: #ff9999;
             overflow: hidden; /* Prevent image from spilling outside border */
             background-repeat: no-repeat; /* Ensure image doesn't repeat */
-            /* Keep the same dimensions as other cards for consistency */
+            position: relative; /* For positioning the card label */
+        }
+        .suspect-card {
+            border-color: #ff9999;
         }
         .weapon-card {
-            background-color: #edffed;
             border-color: #99ff99;
         }
         .room-card {
-            background-color: #ededff;
             border-color: #9999ff;
         }
         .card-title {
             font-weight: bold;
             margin-bottom: 10px;
+        }
+        .card-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 5px;
+            font-size: 12px;
+            text-align: center;
         }
         h2 {
             color: #333;
@@ -191,26 +204,19 @@
               let cardType = 'room-card';
               let isSuspect = ["Colonel Mustard", "Professor Plum", "Mr. Green", "Mrs. Peacock", "Miss Scarlet", "Mrs. White"].includes(card);
               let isWeapon = ["Candlestick", "Knife", "Lead Pipe", "Revolver", "Rope", "Wrench"].includes(card);
+              
               if (isSuspect) cardType = 'suspect-card';
               else if (isWeapon) cardType = 'weapon-card';
-          
-              if (cardType === 'suspect-card') { %>
-                <% const imageUrl = '/images/cards/' + encodeURIComponent(card) + '.png'; %>
-                <div class="card <%= cardType %> suspect-card-image" style="background-image: url('<%= imageUrl %>');">
-                </div>             
-              <% } else { %>
-                <div class="card <%= cardType %>">
-                  <div class="card-title">
-                    <%= cardType === 'weapon-card' ? 'Weapon' : 'Room' %>
-                  </div>
-                  <%= card %>
-                </div>
-              <% }
-            }); %>
+              
+              // Get image URL for the card based on its name
+              const imageUrl = '/cards/' + encodeURIComponent(card) + '.png';
+            %>
+              <div class="card <%= cardType %> card-image" style="background-image: url('<%= imageUrl %>');">
+                <div class="card-label"><%= card %></div>
+              </div>
+            <% }); %>
         </div>
           
-          
-
         <div class="current-turn">
             <h3>Current Turn</h3>
             <p>It's <strong><%= currentTurn %>'s</strong> turn</p>
@@ -283,6 +289,30 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Add event listener to handle image loading errors
+            document.querySelectorAll('.card-image').forEach(card => {
+                const backgroundImg = card.style.backgroundImage;
+                const url = backgroundImg.slice(5, -2); // Extract URL from url('...') format
+                
+                const img = new Image();
+                img.onerror = function() {
+                    console.log('Failed to load card image...')
+                    // If image fails to load, add a fallback style
+                    const cardType = card.classList.contains('suspect-card') ? 'Suspect' :
+                                    card.classList.contains('weapon-card') ? 'Weapon' : 'Room';
+                    const cardName = card.querySelector('.card-label').textContent;
+                    
+                    // Remove background image and reset styles
+                    card.style.backgroundImage = '';
+                    card.classList.remove('card-image');
+                    card.innerHTML = `
+                        <div class="card-title">${cardType}</div>
+                        ${cardName}
+                    `;
+                };
+                img.src = url;
+            });
+
             const suggestionForm = document.getElementById('suggestionForm');
             if (suggestionForm) {
                 suggestionForm.addEventListener('submit', function(event) {
