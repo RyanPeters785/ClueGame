@@ -59,6 +59,7 @@ app.get('/deduction', gameController.deductionPage);
 app.post('/api/submit-suggestion', gameController.submitSuggestion);
 app.post('/api/respond-suggestion', gameController.respondToSuggestion);
 app.get('/api/eliminated-cards', gameController.getEliminatedCards);
+app.get('/make-suggestion', gameController.makeSuggestionPage);
 
 
 // Start the server

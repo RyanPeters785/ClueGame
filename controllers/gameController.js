@@ -574,6 +574,36 @@ export function checkSuggestionStatus(req, res) {
   res.json({ resolved });
 }
 
+// Add this new function to handle the suggestion page
+export function makeSuggestionPage(req, res) {
+  // If game has not yet started, redirect to home
+  if (!gameStarted) {
+    return res.redirect('/');
+  }
+  
+  // Get player name from session
+  const playerName = req.session.playerName;
+  
+  // If not a valid player, redirect to login
+  if (!playerName || !players.includes(playerName)) {
+    return res.redirect('/login');
+  }
+  
+  // If it's not this player's turn, redirect to game page
+  if (playerName !== getCurrentTurn()) {
+    return res.redirect('/game');
+  }
+  
+  // Render the make suggestion page
+  res.render('make-suggestion', {
+    playerName,
+    suspects: cards.suspects,
+    weapons: cards.weapons,
+    rooms: cards.rooms,
+    playerEliminatedCards: playerEliminatedCards[playerName] || []
+  });
+}
+
 export function getGameStatus(req, res) {
   res.json({
     gameStarted,
@@ -612,5 +642,7 @@ export default {
     respondPage,
     checkResponseTurn,
     checkSuggestionStatus,
-    getGameStatus
+    getGameStatus,
+    makeSuggestionPage,
+
 };
