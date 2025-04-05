@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Respond to Suggestion - Clue Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+        .response-container {
+            margin: 20px auto;
+            max-width: 600px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .player-info {
+            font-size: 18px;
+            margin-bottom: 20px;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .suggestion-info {
+            background-color: #e7f3fe;
+            border: 1px solid #b6d4fe;
+            color: #0062cc;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .suggestion-info h3 {
+            margin-top: 0;
+            color: #0062cc;
+        }
+        .suggestion-details {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .cards-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .card {
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 10px;
+            width: 120px;
+            height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .suspect-card {
+            background-color: #ffeded;
+            border-color: #ff9999;
+        }
+        .weapon-card {
+            background-color: #edffed;
+            border-color: #99ff99;
+        }
+        .room-card {
+            background-color: #ededff;
+            border-color: #9999ff;
+        }
+        .card-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .response-action {
+            margin-top: 30px;
+        }
+        .response-button {
+            padding: 12px 30px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: background-color 0.3s;
+        }
+        .show-card-button {
+            background-color: #4CAF50;
+        }
+        .show-card-button:hover {
+            background-color: #45a049;
+        }
+        .pass-button {
+            background-color: #6c757d;
+        }
+        .pass-button:hover {
+            background-color: #5a6268;
+        }
+        .selected {
+            border: 3px solid #4CAF50;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <h1>Respond to Suggestion</h1>
+    
+    <div class="player-info">
+        Playing as: <strong><%= playerName %></strong>
+    </div>
+    
+    <div class="response-container">
+        <div class="suggestion-info">
+            <h3>Suggestion by <%= suggestion.suggester %></h3>
+            <div class="suggestion-details">
+                <div>Suspect:</div>
+                <div><strong><%= suggestion.suspect %></strong></div>
+                
+                <div>Weapon:</div>
+                <div><strong><%= suggestion.weapon %></strong></div>
+                
+                <div>Room:</div>
+                <div><strong><%= suggestion.room %></strong></div>
+            </div>
+        </div>
+        
+        <% if (matchingCards && matchingCards.length > 0) { %>
+            <h3>Select a card to show:</h3>
+            <div class="cards-container">
+                <% matchingCards.forEach(card => { %>
+                    <% 
+                        let cardType = '';
+                        if (suspects.includes(card)) {
+                            cardType = 'suspect-card';
+                        } else if (weapons.includes(card)) {
+                            cardType = 'weapon-card';
+                        } else {
+                            cardType = 'room-card';
+                        }
+                    %>
+                    <div class="card <%= cardType %>" onclick="selectCard(this, '<%= card %>')">
+                        <div class="card-title">
+                            <%= 
+                                cardType === 'suspect-card' ? 'Suspect' : 
+                                cardType === 'weapon-card' ? 'Weapon' : 'Room' 
+                            %>
+                        </div>
+                        <%= card %>
+                    </div>
+                <% }); %>
+            </div>
+            
+            <div class="response-action">
+                <button id="show-card-button" class="response-button show-card-button" disabled>Show Selected Card</button>
+            </div>
+        <% } else { %>
+            <h3>You don't have any matching cards to show.</h3>
+            <div class="response-action">
+                <button id="pass-button" class="response-button pass-button">Pass</button>
+            </div>
+        <% } %>
+    </div>
+
+    <script>
+        let selectedCard = null;
+        
+        function selectCard(cardElement, cardName) {
+            // Remove selected class from all cards
+            document.querySelectorAll('.card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked card
+            cardElement.classList.add('selected');
+            selectedCard = cardName;
+            
+            // Enable the show card button
+            document.getElementById('show-card-button').disabled = false;
+        }
+        
+        // Set up event listeners when document is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show card button handler
+            const showCardButton = document.getElementById('show-card-button');
+            if (showCardButton) {
+                showCardButton.addEventListener('click', function() {
+                    if (!selectedCard) {
+                        alert('Please select a card to show first.');
+                        return;
+                    }
+                    
+                    // Send response to server
+                    fetch('/api/respond-suggestion', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ card: selectedCard })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = '/game';
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while submitting your response.');
+                    });
+                });
+            }
+            
+            // Pass button handler
+            const passButton = document.getElementById('pass-button');
+            if (passButton) {
+                passButton.addEventListener('click', function() {
+                    // Send pass response to server
+                    fetch('/api/respond-suggestion', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ card: null })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = '/game';
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while submitting your response.');
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

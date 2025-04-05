@@ -29,6 +29,9 @@ const solution = {
   room: null
 };
 
+// Track eliminated cards for each player
+const playerEliminatedCards = {};
+
 /*----------------------------------------------------------------------------------------------------*/
 
 //home function to handle the qr page ('/' Route)
@@ -170,9 +173,10 @@ export function gamePage(req, res) {
     currentTurn: getCurrentTurn(),
     suspects: cards.suspects,
     weapons: cards.weapons,
-    rooms: cards.rooms
+    rooms: cards.rooms,
+    playerEliminatedCards: playerEliminatedCards[playerName] || []
   });
-}
+  }
 
 
 // Start game
@@ -247,9 +251,6 @@ function startTurnRotation() {
 }
 
 
-
-
-
 // Advances to the next player's turn, automatically after a timeout
 function advanceTurn() {
   if (turnOrder.length === 0) return;
@@ -257,7 +258,16 @@ function advanceTurn() {
   // Log the current turn for debugging
   console.log(`It's now ${turnOrder[currentTurnIndex]}'s turn.`);
   
+  // Set a timeout to automatically advance to the next player's turn after 2 minutes
+  if (turnTimeout) {
+    clearTimeout(turnTimeout);
+  }
   
+  turnTimeout = setTimeout(() => {
+    currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+    console.log(`Turn timed out. Next turn: ${turnOrder[currentTurnIndex]}`);
+    advanceTurn();
+  }, 2 * 60 * 1000); // 2 minutes in milliseconds
 }
 
 
@@ -275,66 +285,91 @@ function manualAdvanceTurn() {
 
 // Submit a suggestion during a player's turn
 export function submitSuggestion(req, res) {
-    const { suspect, weapon, room } = req.body;
-    const playerName = req.session.playerName;
+  const { suspect, weapon, room } = req.body;
+  const playerName = req.session.playerName;
+
+  // Validate the suggestion
+  if (!gameStarted || playerName !== getCurrentTurn()) {
+    return res.status(403).json({ success: false, message: "It's not your turn" });
+  }
+
+  // Create the suggestion
+  currentSuggestion = { 
+    suggester: playerName, 
+    suspect, 
+    weapon, 
+    room,
+    refutedBy: null,
+    responseHistory: []
+  };
+
+  // Find next player who can potentially refute
+  const suggesterIndex = players.indexOf(playerName);
+  let refuterIndex = (suggesterIndex + 1) % players.length;
+  let canRefute = false;
+  let nextPlayer = null;
   
-    // Validate the suggestion
-    if (!gameStarted || playerName !== getCurrentTurn()) {
-      return res.status(403).json({ success: false, message: "It's not your turn" });
-    }
-  
-    // Create the suggestion
-    currentSuggestion = { 
-      suggester: playerName, 
-      suspect, 
-      weapon, 
-      room,
-      refutedBy: null
-    };
-  
-    // Find next player who can potentially refute
-    const suggesterIndex = players.indexOf(playerName);
-    let refuterIndex = (suggesterIndex + 1) % players.length;
+  while (refuterIndex !== suggesterIndex) {
+    const potentialRefuter = players[refuterIndex];
+    const refuterCards = playerCards[potentialRefuter];
     
-    while (refuterIndex !== suggesterIndex) {
-      const potentialRefuter = players[refuterIndex];
-      const refuterCards = playerCards[potentialRefuter];
-      
-      // Check if this player can refute
-      const refutingCard = refuterCards.find(card => 
-        card === suspect || card === weapon || card === room
-      );
-  
-      if (refutingCard) {
-        return res.json({ 
-          success: true, 
-          message: "Suggestion made", 
-          nextPlayer: potentialRefuter,
-          canRefute: true
-        });
-      }
-  
-      refuterIndex = (refuterIndex + 1) % players.length;
+    // Check if this player can refute
+    const refutingCard = refuterCards.find(card => 
+      card === suspect || card === weapon || card === room
+    );
+
+    if (refutingCard) {
+      canRefute = true;
+      nextPlayer = potentialRefuter;
+      break;
     }
-  
+
+    refuterIndex = (refuterIndex + 1) % players.length;
+  }
+
+  if (!canRefute) {
     // No one can refute
+    currentSuggestion.noRefute = true;
+    
+    // Automatically advance turn after a delay
+    setTimeout(() => {
+      manualAdvanceTurn();
+    }, 5000);
+    
     return res.json({ 
       success: true, 
       message: "No one can refute the suggestion", 
+      canRefute: false,
       nextPlayer: getCurrentTurn()
     });
   }
+  
+  return res.json({ 
+    success: true, 
+    message: "Suggestion made", 
+    canRefute: true,
+    nextPlayer
+  });
+}
 
 // Respond to a suggestion (show a card or pass)
 export function respondToSuggestion(req, res) {
-    const { card } = req.body;
-    const playerName = req.session.playerName;
-  
-    // Validate the response
-    if (!currentSuggestion || currentSuggestion.refutedBy) {
-      return res.status(403).json({ success: false, message: "No active suggestion" });
-    }
-  
+  const { card } = req.body;
+  const playerName = req.session.playerName;
+
+  // Validate the response
+  if (!currentSuggestion) {
+    return res.status(403).json({ success: false, message: "No active suggestion" });
+  }
+
+  // Add this player to the response history
+  if (!currentSuggestion.responseHistory) {
+    currentSuggestion.responseHistory = [];
+  }
+  currentSuggestion.responseHistory.push(playerName);
+
+  // If player showed a card
+  if (card) {
     // Check if the player can actually show this card
     const playerMatchingCards = playerCards[playerName].filter(
       c => c === currentSuggestion.suspect || 
@@ -342,42 +377,75 @@ export function respondToSuggestion(req, res) {
            c === currentSuggestion.room
     );
   
-    if (card && !playerMatchingCards.includes(card)) {
+    if (!playerMatchingCards.includes(card)) {
       return res.status(403).json({ success: false, message: "Invalid card" });
     }
   
-    // Update suggestion
-    if (card) {
-      currentSuggestion.refutedBy = {
-        player: playerName,
-        card: card
-      };
-      
-      // Track eliminated cards for this player
-      if (!playerEliminatedCards[playerName]) {
-        playerEliminatedCards[playerName] = [];
-      }
-      
-      // Add not-solution cards to eliminated list
-      [currentSuggestion.suspect, currentSuggestion.weapon, currentSuggestion.room]
-        .forEach(suggestionCard => {
-          if (suggestionCard !== card && 
-              !playerEliminatedCards[playerName].includes(suggestionCard)) {
-            playerEliminatedCards[playerName].push(suggestionCard);
-          }
-        });
+    // Update suggestion with refutal
+    currentSuggestion.refutedBy = {
+      player: playerName,
+      card: card
+    };
+    
+    // Update suggester's eliminated cards
+    const suggester = currentSuggestion.suggester;
+    if (!playerEliminatedCards[suggester]) {
+      playerEliminatedCards[suggester] = [];
     }
-  
-    // Advance turn
-    currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
-  
-    res.json({ 
+    
+    // The refuting player showed them one card, so the other two can be added to eliminated list
+    const remainingCards = [currentSuggestion.suspect, currentSuggestion.weapon, currentSuggestion.room]
+      .filter(c => c !== card);
+      
+    remainingCards.forEach(c => {
+      if (!playerEliminatedCards[suggester].includes(c)) {
+        playerEliminatedCards[suggester].push(c);
+      }
+    });
+    
+    // Advance turn to the original suggester
+    setTimeout(() => {
+      currentTurnIndex = turnOrder.indexOf(currentSuggestion.suggester);
+      currentSuggestion = null; // Clear the suggestion
+      advanceTurn();
+    }, 3000);
+    
+    return res.json({ 
       success: true, 
-      message: "Response recorded", 
-      nextPlayer: getCurrentTurn(),
-      eliminatedCards: playerEliminatedCards[playerName] || []
+      message: "Card shown" 
+    });
+  } 
+  else {
+    // Player passed (couldn't show a card)
+    
+    // Find next player who should respond
+    const suggesterIndex = players.indexOf(currentSuggestion.suggester);
+    let currentIndex = players.indexOf(playerName);
+    let nextIndex = (currentIndex + 1) % players.length;
+    
+    // If we've gone all the way around to the suggester
+    if (nextIndex === suggesterIndex) {
+      currentSuggestion.noRefute = true;
+      
+      // Advance turn to the suggester
+      setTimeout(() => {
+        currentTurnIndex = suggesterIndex;
+        currentSuggestion = null; // Clear the suggestion
+        advanceTurn();
+      }, 3000);
+      
+      return res.json({ 
+        success: true, 
+        message: "No one could refute" 
+      });
+    }
+    
+    return res.json({ 
+      success: true, 
+      message: "Passed to next player" 
     });
   }
+}
 
   // Get eliminated cards for a player
   export function getEliminatedCards(req, res) {
@@ -414,6 +482,89 @@ export function deductionPage(req, res) {
     });
 }
 
+// route to render the response page
+export function respondPage(req, res) {
+  if (!gameStarted || !currentSuggestion) {
+      return res.redirect('/game');
+  }
+  
+  const playerName = req.session.playerName;
+  if (!playerName || !players.includes(playerName)) {
+      return res.redirect('/login');
+  }
+  
+  // Find matching cards that this player can use to refute
+  const matchingCards = playerCards[playerName].filter(card => 
+      card === currentSuggestion.suspect || 
+      card === currentSuggestion.weapon || 
+      card === currentSuggestion.room
+  );
+  
+  res.render('respond', { 
+      playerName,
+      suggestion: currentSuggestion,
+      matchingCards,
+      suspects: cards.suspects,
+      weapons: cards.weapons,
+      rooms: cards.rooms
+  });
+}
+
+
+// check if it's the player's turn to respond to a suggestion
+export function checkResponseTurn(req, res) {
+  const playerName = req.session.playerName;
+  
+  if (!gameStarted || !currentSuggestion || !playerName) {
+      return res.json({ shouldRespond: false });
+  }
+  
+  // Calculate which player should respond next
+  const suggesterIndex = players.indexOf(currentSuggestion.suggester);
+  let currentIndex = suggesterIndex;
+  let responded = [];
+  
+  // If we have a response history, use it
+  if (currentSuggestion.responseHistory) {
+      responded = currentSuggestion.responseHistory;
+  }
+  
+  // Find the next player who hasn't responded yet
+  do {
+      currentIndex = (currentIndex + 1) % players.length;
+      if (currentIndex === suggesterIndex) {
+          // We've gone all the way around, no one can refute
+          return res.json({ shouldRespond: false });
+      }
+  } while (responded.includes(players[currentIndex]));
+  
+  // Check if it's this player's turn to respond
+  const shouldRespond = (players[currentIndex] === playerName);
+  
+  if (shouldRespond) {
+      res.json({ shouldRespond: true });
+  } else {
+      res.json({ shouldRespond: false });
+  }
+}
+
+// check the current status of a suggestion
+export function checkSuggestionStatus(req, res) {
+  // If no current suggestion or it's been refuted, the suggestion process is resolved
+  const resolved = !currentSuggestion || currentSuggestion.refutedBy || currentSuggestion.noRefute;
+  res.json({ resolved });
+}
+
+export function getGameStatus(req, res) {
+  res.json({
+      gameStarted,
+      currentTurn: getCurrentTurn(),
+      players
+  });
+}
+
+/* ----------------------------------------------------------------------------------- */
+
 
 // Expose methods for turn management
 export function getCurrentPlayer() {
@@ -436,5 +587,9 @@ export default {
     startTurnRotation, 
     advanceTurn,
     getCurrentTurn,
-    manualAdvanceTurn
+    manualAdvanceTurn,
+    respondPage,
+    checkResponseTurn,
+    checkSuggestionStatus,
+    getGameStatus
 };

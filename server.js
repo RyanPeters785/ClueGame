@@ -53,6 +53,9 @@ app.get('/api/players', gameController.getPlayerCount); // get player count
 app.post('/api/start-game', gameController.startGame); // start game
 app.get('/game', gameController.gamePage); // get game page for players
 
+app.get('/respond', gameController.respondPage);
+app.get('/api/check-response-turn', gameController.checkResponseTurn);
+app.get('/api/check-suggestion-status', gameController.checkSuggestionStatus);
 app.get('/deduction', gameController.deductionPage);
 app.post('/api/submit-suggestion', gameController.submitSuggestion);
 app.post('/api/respond-suggestion', gameController.respondToSuggestion);
