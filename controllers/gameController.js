@@ -200,6 +200,8 @@ export function startGame(req, res) {
   solution.suspect = cards.suspects[Math.floor(Math.random() * cards.suspects.length)];
   solution.weapon = cards.weapons[Math.floor(Math.random() * cards.weapons.length)];
   solution.room = cards.rooms[Math.floor(Math.random() * cards.rooms.length)];
+
+  console.log(solution)
   
   // Create deck without solution cards
   const deck = [
@@ -290,6 +292,7 @@ function manualAdvanceTurn() {
 
 // Submit a suggestion during a player's turn
 export function submitSuggestion(req, res) {
+  console.log('SUBMITTED')
   const { suspect, weapon, room } = req.body;
   const playerName = req.session.playerName;
 
