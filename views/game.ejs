@@ -58,8 +58,11 @@
         .card.suspect-card-image {
             background-size: cover;
             background-position: center;
-            padding: 0;
+            padding: 0; /* Remove padding to let image fill the entire card */
             border-color: #ff9999;
+            overflow: hidden; /* Prevent image from spilling outside border */
+            background-repeat: no-repeat; /* Ensure image doesn't repeat */
+            /* Keep the same dimensions as other cards for consistency */
         }
         .weapon-card {
             background-color: #edffed;
