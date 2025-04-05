@@ -382,13 +382,12 @@
                 fetch('/api/game-status')
                     .then(response => response.json())
                     .then(data => {
-                        // If current turn changed, reload the page
-                        if (data.currentTurn !== '<%= currentTurn %>') {
-                            window.location.reload();
+                        if (data.gameOver) {
+                        alert(`${data.winner} has won the game! 🎉`);
+                        window.location.reload();
+                        } else if (data.currentTurn !== '<%= currentTurn %>') {
+                        window.location.reload();
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error checking game status:', error);
                     });
             }, 5000); // Check every 5 seconds
         });

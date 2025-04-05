@@ -32,6 +32,10 @@ const solution = {
 // Track eliminated cards for each player
 const playerEliminatedCards = {};
 
+// Track if the someone has won the game
+let gameOver = false;
+let winner = null;
+
 /*----------------------------------------------------------------------------------------------------*/
 
 //home function to handle the qr page ('/' Route)
@@ -329,28 +333,39 @@ export function submitSuggestion(req, res) {
   }
 
   if (!canRefute) {
-    // No one can refute
+    const isWinningGuess = (
+      suspect === solution.suspect &&
+      weapon === solution.weapon &&
+      room === solution.room
+    );
+  
+    if (isWinningGuess) {
+      gameOver = true;
+      winner = playerName;
+  
+      return res.json({
+        success: true,
+        message: `${playerName} made the correct accusation and WON the game!`,
+        canRefute: false,
+        gameOver: true,
+        winner: playerName
+      });
+    }
+  
+    // No win, just unrefutable suggestion
     currentSuggestion.noRefute = true;
-    
-    // Automatically advance turn after a delay
+  
     setTimeout(() => {
       manualAdvanceTurn();
     }, 100);
-    
-    return res.json({ 
-      success: true, 
-      message: `${playerName} Won!`,
+  
+    return res.json({
+      success: true,
+      message: `No one could refute ${playerName}'s suggestion.`,
       canRefute: false,
       nextPlayer: getCurrentTurn()
     });
   }
-  
-  return res.json({ 
-    success: true, 
-    message: "Suggestion made", 
-    canRefute: true,
-    nextPlayer
-  });
 }
 
 // Respond to a suggestion (show a card or pass)
@@ -558,9 +573,11 @@ export function checkSuggestionStatus(req, res) {
 
 export function getGameStatus(req, res) {
   res.json({
-      gameStarted,
-      currentTurn: getCurrentTurn(),
-      players
+    gameStarted,
+    currentTurn: getCurrentTurn(),
+    players,
+    gameOver,
+    winner
   });
 }
 
