@@ -47,34 +47,53 @@ function resetGameState() {
   currentSuggestion = null;
 }
 
-// Start turn rotation
+// Start the turn rotation when the game begins
 function startTurnRotation() {
+  // Clear any previous turn order and initialize with current players
+  turnOrder.length = 0;
   turnOrder.push(...players);
+  currentTurnIndex = 0;
+  console.log(`Turn rotation started. First turn: ${turnOrder[currentTurnIndex]}`);
+  // Begin the first turn
   advanceTurn();
 }
 
-// Advance to next turn
+// Advances to the next player's turn, automatically after a timeout
 function advanceTurn() {
   if (turnOrder.length === 0) return;
   
-  const currentPlayer = turnOrder[currentTurnIndex];
-  
-  // Reset timeout if exists
+  // Clear any existing timeout
   if (turnTimeout) {
     clearTimeout(turnTimeout);
   }
   
-  // Set timeout for next turn
+  // Log the current turn for debugging
+  console.log(`It's now ${turnOrder[currentTurnIndex]}'s turn.`);
+  
+  // Set a timeout to automatically advance the turn if no action is taken
   turnTimeout = setTimeout(() => {
+    console.log(`${turnOrder[currentTurnIndex]}'s turn timed out.`);
     currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
     advanceTurn();
   }, turnDuration);
 }
 
-// Getter for current turn
+// Returns the player whose turn it currently is
 function getCurrentTurn() {
-  return turnOrder[currentTurnIndex] || null;
+  return turnOrder.length > 0 ? turnOrder[currentTurnIndex] : null;
 }
+
+// Call this function when a player successfully completes their move
+// to manually advance the turn before the timeout expires
+function manualAdvanceTurn() {
+  if (turnTimeout) {
+    clearTimeout(turnTimeout);
+  }
+  currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+  console.log(`Manually advancing turn. Next turn: ${turnOrder[currentTurnIndex]}`);
+  advanceTurn();
+}
+
 
 // Submit a suggestion during a player's turn
 export function submitSuggestion(req, res) {
@@ -420,5 +439,9 @@ export default {
     getCurrentPlayer,
     submitSuggestion, 
     respondToSuggestion, 
-    getEliminatedCards
+    getEliminatedCards,
+    startTurnRotation, 
+    advanceTurn,
+    getCurrentTurn,
+    manualAdvanceTurn
 };
