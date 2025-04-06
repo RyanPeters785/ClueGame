@@ -2,39 +2,47 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title><%= title || 'Doodle Jump' %></title>
   <style>
-    body {
+    * {
       margin: 0;
       padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
       background-color: #f0f0f0;
       font-family: 'Arial', sans-serif;
     }
     
     .game-container {
       position: relative;
-      width: 320px;
-      height: 480px;
-      margin: 0 auto;
+      width: 100%;
+      height: 100%;
+      margin: 0;
       overflow: hidden;
     }
     
     canvas {
       display: block;
       background: #D6EAF8;
-      border: 2px solid #3498db;
-      border-radius: 8px;
+      width: 100%;
+      height: 100%;
     }
     
     .controls {
-      display: none;
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      display: flex;
       justify-content: space-between;
-      width: 100%;
-      margin-top: 10px;
+      padding: 0 20px;
     }
     
     .control-button {
@@ -50,26 +58,46 @@
       align-items: center;
     }
     
-    @media (max-width: 768px) {
-      .controls {
-        display: flex;
-      }
+    .tilt-indicator {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: rgba(52, 152, 219, 0.5);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 12px;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
   <div class="game-container">
-    <canvas id="gameCanvas" width="320" height="480"></canvas>
+    <canvas id="gameCanvas"></canvas>
     <div class="controls">
       <button class="control-button" id="leftBtn">←</button>
       <button class="control-button" id="rightBtn">→</button>
     </div>
+    <div class="tilt-indicator" id="tiltIndicator">Tilt: Off</div>
   </div>
   
   <script>
     // Game Canvas
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
+    const tiltIndicator = document.getElementById("tiltIndicator");
+    
+    // Set canvas to full screen
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    
+    // Initial resize and event listener for window resize
+    resizeCanvas();
+    window.addEventListener('resize', function() {
+      resizeCanvas();
+    });
     
     // Game variables
     let score = 0;
@@ -77,12 +105,16 @@
     let gameOver = false;
     
     // Game dimensions
-    const width = canvas.width;
-    const height = canvas.height;
+    let width = canvas.width;
+    let height = canvas.height;
     
     // Control buttons
     const leftBtn = document.getElementById("leftBtn");
     const rightBtn = document.getElementById("rightBtn");
+    
+    // Tilt control variables
+    let tiltEnabled = false;
+    let tiltSensitivity = 3; // Adjust this value to change sensitivity
     
     // Player object
     const player = {
@@ -102,37 +134,42 @@
       
       // Draw the player
       draw: function() {
+        // Scale player size based on screen dimensions
+        const scaleFactor = Math.min(width, height) / 400;
+        const scaledWidth = this.width * scaleFactor;
+        const scaledHeight = this.height * scaleFactor;
+        
         // Body
         ctx.fillStyle = "#8BC34A";
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.fillRect(this.x, this.y, scaledWidth, scaledHeight);
         
         // Eyes
         ctx.fillStyle = "white";
         ctx.beginPath();
-        ctx.arc(this.x + 10, this.y + 10, 5, 0, Math.PI * 2);
-        ctx.arc(this.x + 20, this.y + 10, 5, 0, Math.PI * 2);
+        ctx.arc(this.x + scaledWidth * 0.33, this.y + scaledHeight * 0.25, scaledWidth * 0.16, 0, Math.PI * 2);
+        ctx.arc(this.x + scaledWidth * 0.66, this.y + scaledHeight * 0.25, scaledWidth * 0.16, 0, Math.PI * 2);
         ctx.fill();
         
         // Pupils
         ctx.fillStyle = "black";
         ctx.beginPath();
-        ctx.arc(this.x + 10, this.y + 10, 2, 0, Math.PI * 2);
-        ctx.arc(this.x + 20, this.y + 10, 2, 0, Math.PI * 2);
+        ctx.arc(this.x + scaledWidth * 0.33, this.y + scaledHeight * 0.25, scaledWidth * 0.06, 0, Math.PI * 2);
+        ctx.arc(this.x + scaledWidth * 0.66, this.y + scaledHeight * 0.25, scaledWidth * 0.06, 0, Math.PI * 2);
         ctx.fill();
         
         // Mouth
         ctx.beginPath();
-        ctx.arc(this.x + 15, this.y + 25, 8, 0, Math.PI);
+        ctx.arc(this.x + scaledWidth * 0.5, this.y + scaledHeight * 0.62, scaledWidth * 0.25, 0, Math.PI);
         ctx.stroke();
         
         // Antenna
         ctx.strokeStyle = "black";
         ctx.beginPath();
-        ctx.moveTo(this.x + 15, this.y);
-        ctx.lineTo(this.x + 15, this.y - 10);
+        ctx.moveTo(this.x + scaledWidth * 0.5, this.y);
+        ctx.lineTo(this.x + scaledWidth * 0.5, this.y - scaledHeight * 0.25);
         ctx.stroke();
         ctx.beginPath();
-        ctx.arc(this.x + 15, this.y - 12, 2, 0, Math.PI * 2);
+        ctx.arc(this.x + scaledWidth * 0.5, this.y - scaledHeight * 0.3, scaledWidth * 0.06, 0, Math.PI * 2);
         ctx.fill();
       },
       
@@ -186,6 +223,10 @@
       
       // Draw the platform
       draw() {
+        // Scale platform size based on screen dimensions
+        const scaleFactor = Math.min(width, height) / 400;
+        const scaledHeight = this.height * scaleFactor;
+        
         // Platform base
         if (this.type === 'breakable') {
           ctx.fillStyle = "#E74C3C"; // Red
@@ -195,12 +236,12 @@
           ctx.fillStyle = "#7F8C8D"; // Gray
         }
         
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.fillRect(this.x, this.y, this.width, scaledHeight);
         
         // Draw spring if present
         if (this.hasSpring) {
           ctx.fillStyle = "#E74C3C";
-          ctx.fillRect(this.x + this.width / 2 - 5, this.y - 10, 10, 10);
+          ctx.fillRect(this.x + this.width / 2 - 5 * scaleFactor, this.y - 10 * scaleFactor, 10 * scaleFactor, 10 * scaleFactor);
         }
       }
       
@@ -251,6 +292,7 @@
     const cloudCount = 5;
     
     function initClouds() {
+      clouds.length = 0;
       for (let i = 0; i < cloudCount; i++) {
         clouds.push({
           x: Math.random() * width,
@@ -322,7 +364,6 @@
     
     // Camera/viewport tracking
     let cameraY = 0;
-    const viewportHeight = height;
     
     // Check collision with platforms
     function checkPlatformCollisions() {
@@ -406,6 +447,52 @@
       }
     }
     
+    // Handle device orientation (tilt)
+    function handleDeviceOrientation(event) {
+      if (!tiltEnabled || gameOver) return;
+      
+      // Get gamma rotation (left to right tilt)
+      const gamma = event.gamma;
+      
+      // Reset movement flags
+      player.isMovingLeft = false;
+      player.isMovingRight = false;
+      
+      // Set movement based on tilt
+      if (gamma < -5) {
+        player.isMovingLeft = true;
+        player.speedX = -player.moveSpeed * (Math.min(Math.abs(gamma), 20) / 20) * tiltSensitivity;
+      } else if (gamma > 5) {
+        player.isMovingRight = true;
+        player.speedX = player.moveSpeed * (Math.min(Math.abs(gamma), 20) / 20) * tiltSensitivity;
+      }
+    }
+    
+    // Toggle tilt controls
+    function toggleTiltControls() {
+      if (DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        // iOS 13+ requires permission
+        DeviceOrientationEvent.requestPermission()
+          .then(response => {
+            if (response === 'granted') {
+              tiltEnabled = true;
+              window.addEventListener('deviceorientation', handleDeviceOrientation);
+              tiltIndicator.textContent = "Tilt: On";
+              tiltIndicator.style.backgroundColor = "rgba(46, 204, 113, 0.5)";
+            }
+          })
+          .catch(console.error);
+      } else if (window.DeviceOrientationEvent) {
+        // Most non-iOS devices
+        tiltEnabled = true;
+        window.addEventListener('deviceorientation', handleDeviceOrientation);
+        tiltIndicator.textContent = "Tilt: On";
+        tiltIndicator.style.backgroundColor = "rgba(46, 204, 113, 0.5)";
+      } else {
+        alert("Device orientation not supported on this device");
+      }
+    }
+    
     // Game loop
     function gameLoop() {
       if (gameOver) return;
@@ -435,10 +522,11 @@
       drawParticles();
       
       // Draw score
+      const fontSize = Math.max(16, Math.min(width, height) / 20);
       ctx.fillStyle = "#2C3E50";
-      ctx.font = "20px Arial";
-      ctx.fillText("Score: " + score, 10, 25);
-      ctx.fillText("High: " + highScore, 10, 50);
+      ctx.font = `${fontSize}px Arial`;
+      ctx.fillText("Score: " + score, 10, fontSize + 5);
+      ctx.fillText("High: " + highScore, 10, fontSize * 2 + 5);
       
       // Continue game loop
       requestAnimationFrame(gameLoop);
@@ -454,17 +542,24 @@
       ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
       ctx.fillRect(0, 0, width, height);
       
+      const fontSize = Math.max(20, Math.min(width, height) / 15);
+      const smallFontSize = fontSize * 0.7;
+      
       ctx.fillStyle = "white";
-      ctx.font = "30px Arial";
-      ctx.fillText("Game Over", width / 2 - 80, height / 2 - 30);
-      ctx.font = "20px Arial";
-      ctx.fillText("Score: " + score, width / 2 - 40, height / 2 + 10);
-      ctx.fillText("High Score: " + highScore, width / 2 - 60, height / 2 + 40);
-      ctx.fillText("Press Space to Restart", width / 2 - 100, height / 2 + 80);
+      ctx.font = `${fontSize}px Arial`;
+      ctx.fillText("Game Over", width / 2 - fontSize * 2.5, height / 2 - fontSize);
+      ctx.font = `${smallFontSize}px Arial`;
+      ctx.fillText("Score: " + score, width / 2 - smallFontSize * 2, height / 2 + smallFontSize);
+      ctx.fillText("High Score: " + highScore, width / 2 - smallFontSize * 3, height / 2 + smallFontSize * 2.5);
+      ctx.fillText("Tap to Restart", width / 2 - smallFontSize * 3, height / 2 + smallFontSize * 4);
     }
     
     // Initialize the game
     function init() {
+      // Update width and height in case window was resized
+      width = canvas.width;
+      height = canvas.height;
+      
       score = 0;
       gameOver = false;
       cameraY = 0;
@@ -473,6 +568,7 @@
       player.speedX = 0;
       player.speedY = 0;
       player.jumpCount = 0;
+      particles.length = 0;
       initPlatforms();
       initClouds();
       gameLoop();
@@ -486,6 +582,8 @@
         player.isMovingRight = true;
       } else if (e.code === 'Space' && gameOver) {
         init();
+      } else if (e.code === 'KeyT') {
+        toggleTiltControls();
       }
     });
     
@@ -523,12 +621,39 @@
       player.isMovingLeft = false;
     });
     
+    leftBtn.addEventListener('mouseleave', function() {
+      player.isMovingLeft = false;
+    });
+    
     rightBtn.addEventListener('mousedown', function() {
       player.isMovingRight = true;
     });
     
     rightBtn.addEventListener('mouseup', function() {
       player.isMovingRight = false;
+    });
+    
+    rightBtn.addEventListener('mouseleave', function() {
+      player.isMovingRight = false;
+    });
+    
+    // Enable tilt controls button
+    tiltIndicator.addEventListener('click', toggleTiltControls);
+    
+    // Tap to restart when game over
+    canvas.addEventListener('click', function() {
+      if (gameOver) {
+        init();
+      } else {
+        // Toggle tilt controls on tap in top-right corner
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        if (x > width - 100 && y < 50) {
+          toggleTiltControls();
+        }
+      }
     });
     
     // Sound effects
@@ -548,6 +673,11 @@
         // Fallback if audio fails
       }
     }
+    
+    // Prevent default touch behavior to avoid scrolling
+    document.addEventListener('touchmove', function(e) {
+      e.preventDefault();
+    }, { passive: false });
     
     // Start the game
     init();
