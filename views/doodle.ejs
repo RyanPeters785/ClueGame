@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title><%= title || 'Doodle Jump' %></title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+      font-family: 'Arial', sans-serif;
+    }
+    
+    .game-container {
+      position: relative;
+      width: 320px;
+      height: 480px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    
+    canvas {
+      display: block;
+      background: #D6EAF8;
+      border: 2px solid #3498db;
+      border-radius: 8px;
+    }
+    
+    .controls {
+      display: none;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 10px;
+    }
+    
+    .control-button {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: rgba(52, 152, 219, 0.7);
+      border: none;
+      color: white;
+      font-size: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    @media (max-width: 768px) {
+      .controls {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <canvas id="gameCanvas" width="320" height="480"></canvas>
+    <div class="controls">
+      <button class="control-button" id="leftBtn">←</button>
+      <button class="control-button" id="rightBtn">→</button>
+    </div>
+  </div>
+  
+  <script>
+    // Game Canvas
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    
+    // Game variables
+    let score = 0;
+    let highScore = localStorage.getItem('doodleHighScore') || 0;
+    let gameOver = false;
+    
+    // Game dimensions
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Control buttons
+    const leftBtn = document.getElementById("leftBtn");
+    const rightBtn = document.getElementById("rightBtn");
+    
+    // Player object
+    const player = {
+      x: width / 2 - 15,
+      y: height - 100,
+      width: 30,
+      height: 40,
+      speedX: 0,
+      speedY: 0,
+      gravity: 0.25,
+      jumpForce: -10,
+      jumpCount: 0,
+      isJumping: false,
+      isMovingLeft: false,
+      isMovingRight: false,
+      moveSpeed: 4,
+      
+      // Draw the player
+      draw: function() {
+        // Body
+        ctx.fillStyle = "#8BC34A";
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+        
+        // Eyes
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(this.x + 10, this.y + 10, 5, 0, Math.PI * 2);
+        ctx.arc(this.x + 20, this.y + 10, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Pupils
+        ctx.fillStyle = "black";
+        ctx.beginPath();
+        ctx.arc(this.x + 10, this.y + 10, 2, 0, Math.PI * 2);
+        ctx.arc(this.x + 20, this.y + 10, 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Mouth
+        ctx.beginPath();
+        ctx.arc(this.x + 15, this.y + 25, 8, 0, Math.PI);
+        ctx.stroke();
+        
+        // Antenna
+        ctx.strokeStyle = "black";
+        ctx.beginPath();
+        ctx.moveTo(this.x + 15, this.y);
+        ctx.lineTo(this.x + 15, this.y - 10);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(this.x + 15, this.y - 12, 2, 0, Math.PI * 2);
+        ctx.fill();
+      },
+      
+      // Update player position and state
+      update: function() {
+        // Apply gravity
+        this.speedY += this.gravity;
+        
+        // Update position based on speed
+        if (this.isMovingLeft) {
+          this.speedX = -this.moveSpeed;
+        } else if (this.isMovingRight) {
+          this.speedX = this.moveSpeed;
+        } else {
+          this.speedX = 0;
+        }
+        
+        this.x += this.speedX;
+        this.y += this.speedY;
+        
+        // Wrap around screen edges
+        if (this.x > width) {
+          this.x = 0;
+        } else if (this.x < 0) {
+          this.x = width;
+        }
+        
+        // Check if falling off bottom of screen
+        if (this.y > height) {
+          endGame();
+        }
+      }
+    };
+    
+    // Platform class
+    class Platform {
+      constructor(x, y, width, type = 'normal') {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = 10;
+        this.type = type; // normal, moving, breakable, spring
+        
+        // For moving platforms
+        this.direction = Math.random() > 0.5 ? 1 : -1;
+        this.speed = 1.5;
+        
+        // For spring
+        this.hasSpring = type === 'normal' && Math.random() < 0.1;
+      }
+      
+      // Draw the platform
+      draw() {
+        // Platform base
+        if (this.type === 'breakable') {
+          ctx.fillStyle = "#E74C3C"; // Red
+        } else if (this.type === 'moving') {
+          ctx.fillStyle = "#3498DB"; // Blue
+        } else {
+          ctx.fillStyle = "#7F8C8D"; // Gray
+        }
+        
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+        
+        // Draw spring if present
+        if (this.hasSpring) {
+          ctx.fillStyle = "#E74C3C";
+          ctx.fillRect(this.x + this.width / 2 - 5, this.y - 10, 10, 10);
+        }
+      }
+      
+      // Update platform position for moving platforms
+      update() {
+        if (this.type === 'moving') {
+          this.x += this.speed * this.direction;
+          
+          // Change direction if hitting edges
+          if (this.x <= 0 || this.x + this.width >= width) {
+            this.direction *= -1;
+          }
+        }
+      }
+    }
+    
+    // Create initial platforms
+    let platforms = [];
+    const platformCount = 10;
+    
+    function initPlatforms() {
+      platforms = [];
+      
+      // Add starting platform under player
+      platforms.push(new Platform(width / 2 - 30, height - 50, 60));
+      
+      // Create random platforms
+      for (let i = 0; i < platformCount - 1; i++) {
+        const platformWidth = Math.random() * 40 + 40;
+        const x = Math.random() * (width - platformWidth);
+        const y = height - 100 - (i * 50);
+        
+        // Determine platform type (with probabilities)
+        let type = 'normal';
+        const typeRoll = Math.random();
+        if (typeRoll < 0.15) {
+          type = 'moving';
+        } else if (typeRoll < 0.2) {
+          type = 'breakable';
+        }
+        
+        platforms.push(new Platform(x, y, platformWidth, type));
+      }
+    }
+    
+    // Cloud background objects
+    const clouds = [];
+    const cloudCount = 5;
+    
+    function initClouds() {
+      for (let i = 0; i < cloudCount; i++) {
+        clouds.push({
+          x: Math.random() * width,
+          y: Math.random() * height / 2,
+          width: Math.random() * 30 + 40,
+          height: Math.random() * 15 + 15,
+          speed: Math.random() * 0.3 + 0.1
+        });
+      }
+    }
+    
+    // Draw clouds
+    function drawClouds() {
+      ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+      clouds.forEach(cloud => {
+        ctx.beginPath();
+        ctx.ellipse(cloud.x, cloud.y, cloud.width / 2, cloud.height / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Update cloud position
+        cloud.x += cloud.speed;
+        if (cloud.x > width + cloud.width) {
+          cloud.x = -cloud.width;
+          cloud.y = Math.random() * height / 2;
+        }
+      });
+    }
+    
+    // Particle effects
+    const particles = [];
+    
+    function createParticles(x, y, count, color) {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: x,
+          y: y,
+          size: Math.random() * 4 + 1,
+          speedX: Math.random() * 6 - 3,
+          speedY: Math.random() * 6 - 3,
+          color: color,
+          life: 30
+        });
+      }
+    }
+    
+    function updateParticles() {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.speedX;
+        p.y += p.speedY;
+        p.life--;
+        
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+        }
+      }
+    }
+    
+    function drawParticles() {
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life / 30;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+    
+    // Camera/viewport tracking
+    let cameraY = 0;
+    const viewportHeight = height;
+    
+    // Check collision with platforms
+    function checkPlatformCollisions() {
+      if (player.speedY <= 0) return; // Only check when falling
+      
+      for (let i = 0; i < platforms.length; i++) {
+        const p = platforms[i];
+        
+        // Check if player is within platform x-bounds
+        if (player.x + player.width > p.x && player.x < p.x + p.width) {
+          // Check if player is at the right height to land on platform
+          if (player.y + player.height >= p.y && player.y + player.height <= p.y + p.height) {
+            // Handle different platform types
+            if (p.type === 'breakable') {
+              // Create breaking effect and remove platform
+              createParticles(p.x + p.width / 2, p.y, 10, "#E74C3C");
+              platforms.splice(i, 1);
+              i--;
+              continue;
+            } else {
+              // Normal landing
+              player.y = p.y - player.height;
+              player.speedY = player.jumpForce;
+              player.isJumping = true;
+              player.jumpCount++;
+              
+              // If platform has spring, jump higher
+              if (p.hasSpring) {
+                player.speedY = player.jumpForce * 1.5;
+                createParticles(p.x + p.width / 2, p.y, 5, "#E74C3C");
+              }
+              
+              // Sound effect for jump
+              playSound('jump');
+            }
+          }
+        }
+      }
+    }
+    
+    // Update camera position based on player height
+    function updateCamera() {
+      // Update camera if player is going high enough
+      if (player.y < height / 2) {
+        const diff = height / 2 - player.y;
+        cameraY += diff;
+        player.y += diff;
+        
+        // Move platforms down
+        for (let i = platforms.length - 1; i >= 0; i--) {
+          platforms[i].y += diff;
+          
+          // Remove platforms that fall below screen
+          if (platforms[i].y > height) {
+            platforms.splice(i, 1);
+            
+            // Create new platform at top
+            const platformWidth = Math.random() * 40 + 40;
+            const x = Math.random() * (width - platformWidth);
+            const y = 0;
+            
+            // Determine platform type
+            let type = 'normal';
+            const typeRoll = Math.random();
+            if (typeRoll < 0.15) {
+              type = 'moving';
+            } else if (typeRoll < 0.2) {
+              type = 'breakable';
+            }
+            
+            platforms.push(new Platform(x, y, platformWidth, type));
+            
+            // Increase score
+            score = Math.floor(cameraY / 10);
+            if (score > highScore) {
+              highScore = score;
+              localStorage.setItem('doodleHighScore', highScore);
+            }
+          }
+        }
+      }
+    }
+    
+    // Game loop
+    function gameLoop() {
+      if (gameOver) return;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, width, height);
+      
+      // Draw background with clouds
+      drawClouds();
+      
+      // Update all platforms
+      platforms.forEach(platform => {
+        platform.update();
+        platform.draw();
+      });
+      
+      // Update player
+      player.update();
+      checkPlatformCollisions();
+      updateCamera();
+      
+      // Draw player
+      player.draw();
+      
+      // Update and draw particles
+      updateParticles();
+      drawParticles();
+      
+      // Draw score
+      ctx.fillStyle = "#2C3E50";
+      ctx.font = "20px Arial";
+      ctx.fillText("Score: " + score, 10, 25);
+      ctx.fillText("High: " + highScore, 10, 50);
+      
+      // Continue game loop
+      requestAnimationFrame(gameLoop);
+    }
+    
+    // End game function
+    function endGame() {
+      gameOver = true;
+      createParticles(player.x + player.width / 2, player.y + player.height / 2, 20, "#8BC34A");
+      playSound('gameOver');
+      
+      // Display game over
+      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+      ctx.fillRect(0, 0, width, height);
+      
+      ctx.fillStyle = "white";
+      ctx.font = "30px Arial";
+      ctx.fillText("Game Over", width / 2 - 80, height / 2 - 30);
+      ctx.font = "20px Arial";
+      ctx.fillText("Score: " + score, width / 2 - 40, height / 2 + 10);
+      ctx.fillText("High Score: " + highScore, width / 2 - 60, height / 2 + 40);
+      ctx.fillText("Press Space to Restart", width / 2 - 100, height / 2 + 80);
+    }
+    
+    // Initialize the game
+    function init() {
+      score = 0;
+      gameOver = false;
+      cameraY = 0;
+      player.x = width / 2 - 15;
+      player.y = height - 100;
+      player.speedX = 0;
+      player.speedY = 0;
+      player.jumpCount = 0;
+      initPlatforms();
+      initClouds();
+      gameLoop();
+    }
+    
+    // Event listeners for keyboard
+    document.addEventListener('keydown', function(e) {
+      if (e.code === 'ArrowLeft') {
+        player.isMovingLeft = true;
+      } else if (e.code === 'ArrowRight') {
+        player.isMovingRight = true;
+      } else if (e.code === 'Space' && gameOver) {
+        init();
+      }
+    });
+    
+    document.addEventListener('keyup', function(e) {
+      if (e.code === 'ArrowLeft') {
+        player.isMovingLeft = false;
+      } else if (e.code === 'ArrowRight') {
+        player.isMovingRight = false;
+      }
+    });
+    
+    // Touch controls
+    leftBtn.addEventListener('touchstart', function() {
+      player.isMovingLeft = true;
+    });
+    
+    leftBtn.addEventListener('touchend', function() {
+      player.isMovingLeft = false;
+    });
+    
+    rightBtn.addEventListener('touchstart', function() {
+      player.isMovingRight = true;
+    });
+    
+    rightBtn.addEventListener('touchend', function() {
+      player.isMovingRight = false;
+    });
+    
+    // Mouse controls for buttons
+    leftBtn.addEventListener('mousedown', function() {
+      player.isMovingLeft = true;
+    });
+    
+    leftBtn.addEventListener('mouseup', function() {
+      player.isMovingLeft = false;
+    });
+    
+    rightBtn.addEventListener('mousedown', function() {
+      player.isMovingRight = true;
+    });
+    
+    rightBtn.addEventListener('mouseup', function() {
+      player.isMovingRight = false;
+    });
+    
+    // Sound effects
+    function playSound(type) {
+      // In a real implementation, this would play actual sounds
+      // For this example, we'll just use this placeholder
+      const audio = {
+        jump: new Audio('data:audio/wav;base64,UklGRhwAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQgAAAAA'),
+        gameOver: new Audio('data:audio/wav;base64,UklGRhwAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQgAAAAA')
+      };
+      
+      try {
+        audio[type].play().catch(e => {
+          // Silent error - browsers may block autoplay
+        });
+      } catch (e) {
+        // Fallback if audio fails
+      }
+    }
+    
+    // Start the game
+    init();
+  </script>
+</body>
+</html>

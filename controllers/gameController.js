@@ -619,6 +619,11 @@ export function flappyBird(req, res) {
   res.render('flappy', { title: 'Flappy Bird Game' });
 }
 
+// Render the Flappy Bird game page
+export function doodle(req, res) {
+  res.render('doodle', { title: 'Doodle Jump Game' });
+}
+
 /* ----------------------------------------------------------------------------------- */
 
 
@@ -649,5 +654,6 @@ export default {
     checkSuggestionStatus,
     getGameStatus,
     makeSuggestionPage,
-    flappyBird
+    flappyBird,
+    doodle
 };
