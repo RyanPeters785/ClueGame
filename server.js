@@ -60,6 +60,7 @@ app.post('/api/submit-suggestion', gameController.submitSuggestion);
 app.post('/api/respond-suggestion', gameController.respondToSuggestion);
 app.get('/api/eliminated-cards', gameController.getEliminatedCards);
 app.get('/make-suggestion', gameController.makeSuggestionPage);
+app.get('/flappybird', gameController.flappyBird); // qr home page for host
 
 
 // Start the server

@@ -1,90 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Waiting for Game to Start</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-        }
-        .welcome {
-            margin: 20px 0;
-            font-size: 18px;
-        }
-        .waiting {
-            margin: 30px 0;
-            color: #666;
-        }
-        .spinner {
-            margin: 20px auto;
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(0, 0, 0, 0.1);
-            border-radius: 50%;
-            border-top-color: #09f;
-            animation: spin 1s ease-in-out infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .card-assignment {
-            display: none;
-            margin: 20px auto;
-            padding: 20px;
-            max-width: 400px;
-            background-color: #f5f5f5;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .card-assignment h2 {
-            color: #333;
-            margin-top: 0;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Waiting for Game to Start</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    .welcome {
+      margin: 20px 0;
+      font-size: 18px;
+    }
+    .waiting {
+      margin: 30px 0;
+      color: #666;
+    }
+    .spinner {
+      margin: 20px auto;
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: #09f;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .card-assignment {
+      display: none;
+      margin: 20px auto;
+      padding: 20px;
+      max-width: 400px;
+      background-color: #f5f5f5;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .card-assignment h2 {
+      color: #333;
+      margin-top: 0;
+    }
+    .mini-game {
+      margin-top: 20px;
+    }
+    .mini-game button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-    <h1>Waiting for Game to Start</h1>
+  <h1>Waiting for Game to Start</h1>
+
+  <div class="welcome">
+    Welcome, <strong><%= playerName %></strong>!
+  </div>
+
+  <div class="waiting" id="waiting-message">
+    Please wait while the host starts the game...
+  </div>
+
+  <div class="spinner" id="waiting-spinner"></div>
+  
+  <!-- Mini game button -->
+  <div class="mini-game">
+      <button onclick="window.location.href='/flappybird'">here</button> 
+  </div>
+
+  <div class="card-assignment" id="card-assignment">
+    <h2>Assigning Cards...</h2>
+    <p>The game is starting! Your cards will appear shortly.</p>
+  </div>
+
+  <script>
+    // Poll to check if game has started
+    function checkGameStatus() {
+      fetch('/game')
+        .then(response => {
+          if (response.redirected || response.url.includes('/game')) {
+            // Show card assignment screen
+            document.getElementById('waiting-message').style.display = 'none';
+            document.getElementById('waiting-spinner').style.display = 'none';
+            document.getElementById('card-assignment').style.display = 'block';
+            
+            // Redirect after a few seconds
+            setTimeout(() => {
+              window.location.href = '/game';
+            }, 3000);
+          }
+        })
+        .catch(error => console.error('Error checking game status:', error));
+    }
     
-    <div class="welcome">
-        Welcome, <strong><%= playerName %></strong>!
-    </div>
-    
-    <div class="waiting" id="waiting-message">
-        Please wait while the host starts the game...
-    </div>
-    
-    <div class="spinner" id="waiting-spinner"></div>
-    
-    <div class="card-assignment" id="card-assignment">
-        <h2>Assigning Cards...</h2>
-        <p>The game is starting! Your cards will appear shortly.</p>
-    </div>
-    
-    <script>
-        // Poll to check if game has started
-        function checkGameStatus() {
-            fetch('/game')
-                .then(response => {
-                    if (response.redirected || response.url.includes('/game')) {
-                        // Show card assignment screen
-                        document.getElementById('waiting-message').style.display = 'none';
-                        document.getElementById('waiting-spinner').style.display = 'none';
-                        document.getElementById('card-assignment').style.display = 'block';
-                        
-                        // Redirect after a few seconds
-                        setTimeout(() => {
-                            window.location.href = '/game';
-                        }, 3000);
-                    }
-                })
-                .catch(error => console.error('Error checking game status:', error));
-        }
-        
-        // Check every 3 seconds
-        setInterval(checkGameStatus, 3000);
-    </script>
+    // Check every 3 seconds
+    setInterval(checkGameStatus, 3000);
+  </script>
 </body>
 </html>

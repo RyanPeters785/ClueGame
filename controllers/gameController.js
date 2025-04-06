@@ -614,6 +614,11 @@ export function getGameStatus(req, res) {
   });
 }
 
+// Render the Flappy Bird game page
+export function flappyBird(req, res) {
+  res.render('flappy', { title: 'Flappy Bird Game' });
+}
+
 /* ----------------------------------------------------------------------------------- */
 
 
@@ -644,5 +649,5 @@ export default {
     checkSuggestionStatus,
     getGameStatus,
     makeSuggestionPage,
-
+    flappyBird
 };
