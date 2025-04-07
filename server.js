@@ -62,6 +62,8 @@ app.get('/api/eliminated-cards', gameController.getEliminatedCards);
 app.get('/make-suggestion', gameController.makeSuggestionPage);
 app.get('/flappybird', gameController.flappyBird); 
 app.get('/doodle', gameController.doodle); 
+app.post('/api/clear-suggestion', gameController.clearSuggestion);
+
 
 
 // Start the server

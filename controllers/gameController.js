@@ -309,79 +309,14 @@ export function submitSuggestion(req, res) {
     responseHistory: []
   };
 
-  // Find next player who can potentially refute
-  const suggesterIndex = players.indexOf(playerName);
-  let refuterIndex = (suggesterIndex + 1) % players.length;
-  let canRefute = false;
-  let nextPlayer = null;
-  
-  while (refuterIndex !== suggesterIndex) {
-    const potentialRefuter = players[refuterIndex];
-    const refuterCards = playerCards[potentialRefuter];
-    
-    // Check if this player can refute
-    const refutingCard = refuterCards.find(card => 
-      card === suspect || card === weapon || card === room
-    );
-
-    if (refutingCard) {
-      canRefute = true;
-      nextPlayer = potentialRefuter;
-      break;
-    }
-
-    refuterIndex = (refuterIndex + 1) % players.length;
-  }
-
-  if (!canRefute) {
-    const isWinningGuess = (
-      suspect === solution.suspect &&
-      weapon === solution.weapon &&
-      room === solution.room
-    );
-  
-    if (isWinningGuess) {
-      gameOver = true;
-      winner = playerName;
-  
-      // Redirect the player back to the game page after declaring a winner
-      return res.json({
-        success: true,
-        message: `${playerName} made the correct accusation and WON the game!`,
-        canRefute: false,
-        gameOver: true,
-        winner: playerName,
-        redirect: '/game'  // Add redirect URL
-      });
-    }
-  
-    // No win, just unrefutable suggestion
-    currentSuggestion.noRefute = true;
-  
-    setTimeout(() => {
-      manualAdvanceTurn();
-    }, 100);
-  
-    // Redirect the player back to the game page after unrefutable suggestion
-    return res.json({
-      success: true,
-      message: `No one could refute ${playerName}'s suggestion.`,
-      canRefute: false,
-      nextPlayer: getCurrentTurn(),
-      redirect: '/game'  // Add redirect URL
-    });
-  }
-  
-  // Someone can refute, return the appropriate response
-  // Include a redirect back to game page
-  return res.json({
+  // Always redirect back to game page immediately
+  res.json({
     success: true,
-    message: `${nextPlayer} needs to respond to your suggestion.`,
-    canRefute: true,
-    nextPlayer: nextPlayer,
-    redirect: '/game'  // Add redirect URL
+    message: "Suggestion submitted. Waiting for responses...",
+    redirect: '/game'
   });
 }
+
 
 // Respond to a suggestion (show a card or pass)
 export function respondToSuggestion(req, res) {
@@ -636,6 +571,15 @@ export function doodle(req, res) {
   res.render('doodle', { title: 'Doodle Jump Game' });
 }
 
+// clear suggestion function
+export function clearSuggestion(req, res) {
+  // Only allow the suggester to clear the suggestion
+  if (currentSuggestion && req.session.playerName === currentSuggestion.suggester) {
+      currentSuggestion = null;
+  }
+  res.json({ success: true });
+}
+
 /* ----------------------------------------------------------------------------------- */
 
 
@@ -667,5 +611,6 @@ export default {
     getGameStatus,
     makeSuggestionPage,
     flappyBird,
-    doodle
+    doodle,
+    clearSuggestion
 };

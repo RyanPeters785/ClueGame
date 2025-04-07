@@ -203,6 +203,59 @@
         .room-indicator {
             background-color: #6b77ff;
         }
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .popup-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 80%;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        .popup-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+        }
+        .popup-card {
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 10px;
+            width: 120px;
+            height: 180px;
+            margin: 10px auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #fff;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .popup-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -320,10 +373,69 @@
                     buttons.forEach(button => button.style.display = 'flex');
                 }
             }
+
+                    // Function to show a popup
+            function showPopup(title, message, card = null) {
+                document.getElementById('popupTitle').textContent = title;
+                document.getElementById('popupMessage').innerHTML = message;
+            
+                const cardElement = document.getElementById('popupCard');
+                if (card) {
+                    cardElement.textContent = card;
+                    cardElement.style.display = 'flex';
+                } else {
+                    cardElement.style.display = 'none';
+                }
+                
+                document.getElementById('popupOverlay').style.display = 'flex';
+            }
+
+            // Function to close the popup
+            function closePopup() {
+                document.getElementById('popupOverlay').style.display = 'none';
+            }
+
+            // Function to check suggestion status
+            function checkSuggestionStatus() {
+                const playerName = '<%= playerName %>';
+                
+                fetch('/api/get-eliminated-cards')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.currentSuggestion && data.currentSuggestion.suggester === playerName) {
+                            if (data.currentSuggestion.refutedBy) {
+                                const refuter = data.currentSuggestion.refutedBy.player;
+                                const card = data.currentSuggestion.refutedBy.card;
+                                
+                                showPopup(
+                                    "Suggestion Refuted",
+                                    `<strong>${refuter}</strong> has refuted your suggestion by showing you:`,
+                                    card
+                                );
+                                
+                                fetch('/api/clear-suggestion', { method: 'POST' })
+                                    .catch(error => console.error('Error clearing suggestion:', error));
+                            }
+                            else if (data.currentSuggestion.noRefute) {
+                                showPopup(
+                                    "Suggestion Result",
+                                    "No one could refute your suggestion!"
+                                );
+                                
+                                fetch('/api/clear-suggestion', { method: 'POST' })
+                                    .catch(error => console.error('Error clearing suggestion:', error));
+                            }
+                        }
+                    })
+                    .catch(error => console.error("Error checking suggestion status:", error));
+            }
+
+
             
             // Initial check and listen for window resize
             updateScrollButtonVisibility();
             window.addEventListener('resize', updateScrollButtonVisibility);
+            setInterval(checkSuggestionStatus, 1000);
         });
         
         // Poll server to check if this player needs to respond to a suggestion
@@ -378,4 +490,15 @@
         });
     </script>
 </body>
+
+<div id="popupOverlay" class="popup-overlay" style="display: none;">
+    <div class="popup-content">
+        <span class="popup-close" onclick="closePopup()">&times;</span>
+        <h3 id="popupTitle">Suggestion Result</h3>
+        <p id="popupMessage"></p>
+        <div id="popupCard" class="popup-card" style="display: none;"></div>
+        <button class="popup-button" onclick="closePopup()">OK</button>
+    </div>
+</div>
+
 </html>
