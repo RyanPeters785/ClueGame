@@ -6,115 +6,122 @@
     <title>Host - Clue Game</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-            background-color: #f0f8ff;
-        }
-        .host-label {
-            background-color: #ff9800;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-bottom: 20px;
+            font-family: 'Montserrat', sans-serif;
+            background-color: #1a1a2e;
+            color: #e6e6e6;
+            margin: 0;
+            padding: 0;
         }
         .game-container {
-            margin: 20px auto;
             max-width: 800px;
-            border: 1px solid #ddd;
-            padding: 20px;
-            border-radius: 8px;
-            background-color: white;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin: 40px auto;
+            padding: 30px;
+            background-color: #16213e;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         }
-        .players-list {
+        .host-badge {
+            background-color: #ff9800;
+            color: #1a1a2e;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 10px;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+        .game-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .game-title {
+            font-size: 48px;
+            font-weight: 800;
+            color: #e94560;
+            margin: 10px 0 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            letter-spacing: 2px;
+        }
+        .turn-display {
+            background-color: #0f3460;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .current-player {
+            background-color: #e94560;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 10px 0;
+            box-shadow: 0 4px 8px rgba(233, 69, 96, 0.4);
+        }
+        .player-order {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 20px;
+            gap: 10px;
             margin-top: 30px;
         }
-        .player-card {
-            border: 1px solid #ddd;
+        .player {
+            background-color: #233554;
             border-radius: 8px;
-            padding: 15px;
-            width: 200px;
-            background-color: #f9f9f9;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+        }
+        .player.active {
+            background-color: #e94560;
+            transform: scale(1.05);
+            font-weight: bold;
         }
         .player-name {
-            font-weight: bold;
-            margin-bottom: 10px;
-            font-size: 18px;
+            font-size: 16px;
         }
-        h2 {
-            color: #333;
-            margin-top: 40px;
-        }
-        .game-board {
-            margin-top: 30px;
-            border: 2px solid #333;
-            border-radius: 8px;
-            padding: 20px;
-            background-color: #f5f5dc;
-        }
-        .game-title {
+        .turn-order-title {
             font-size: 24px;
-            font-weight: bold;
-            color: #8b0000;
-            margin-bottom: 20px;
-        }.current-turn {
-            background-color: #f0f0f0;
-            border: 2px solid #4CAF50;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
+            color: #e6e6e6;
+            margin: 30px 0 15px;
             text-align: center;
         }
-        .turn-notification {
-            background-color: #e7f3fe;
-            border: 1px solid #b6d4fe;
-            color: #0062cc;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 15px;
-        }
-        .waiting-notification {
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 15px;
+        .magnifying-glass {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            display: block;
+            opacity: 0.8;
         }
     </style>
 </head>
 <body>
-    <div class="host-label">HOST VIEW</div>
-    <h1>Clue Game - Game Board</h1>
-    
     <div class="game-container">
-        <div class="game-board">
-            <div class="game-title">CLUE</div>
-            <p>The classic detective game is now in progress!</p>
-            <p>Each player has received their cards and is making deductions.</p>
+        <div class="game-header">
+            <span class="host-badge">HOST VIEW</span>
+            <h1 class="game-title">CLUE</h1>
+            <svg class="magnifying-glass" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="#e94560" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 21L16.65 16.65" stroke="#e94560" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
         </div>
-        
-        <h2>Players in Game</h2>
-        <div class="players-list">
+
+        <div class="turn-display">
+            <h2>Current Turn</h2>
+            <div class="current-player"><%= currentTurn %></div>
+        </div>
+
+        <h3 class="turn-order-title">Player Order</h3>
+        <div class="player-order">
             <% players.forEach(player => { %>
-                <div class="player-card">
+                <div class="player <%= player === currentTurn ? 'active' : '' %>">
                     <div class="player-name"><%= player %></div>
-                    <div>Status: Active</div>
                 </div>
             <% }); %>
         </div>
-        
-        <h2>Game Status</h2>
-        <p>The game has started and cards have been dealt to all players.</p>
-        <h2>Current Turn</h2>
-        <p>Current Player: <strong><%= currentTurn %></strong></p>
     </div>
 </body>
 </html>

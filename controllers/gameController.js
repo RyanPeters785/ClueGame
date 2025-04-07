@@ -36,9 +36,9 @@ const playerEliminatedCards = {};
 let gameOver = false;
 let winner = null;
 
-/*----------------------------------------------------------------------------------------------------*/
+/*--------------------------------------FUNCTIONS--------------------------------------------------------------*/
 
-//home function to handle the qr page ('/' Route)
+// home function to handle the qr page ('/' Route)
 export function home(req, res) {
   
   // Set this session as the host if not already set
@@ -69,7 +69,7 @@ export function home(req, res) {
 }
 
 
-//login function to handle the login page ('/login' Route)
+// login function to handle the login page ('/login' Route)
 export function loginPage(req, res) {
   // If game has already started and user is not a player, prevent login
   if (gameStarted) {
@@ -81,17 +81,14 @@ export function loginPage(req, res) {
           return res.send("Sorry, the game has already started!"); // new players should not join if game has started already
       }
   }
-  
   // Don't allow the host to also be a player
   if (req.session.id === hostSessionId) {
       return res.redirect('/');
   }
-  
   // If player is already logged in, redirect to waiting page
   if (req.session.playerName && players.includes(req.session.playerName)) {
       return res.redirect('/waiting');
   }
-  
   // Otherwise, show login page
   res.render('login');
 }
@@ -149,7 +146,7 @@ export function getPlayerCount(req, res) {
 }
 
 
-// game page for host to display
+// game page for host and each player
 export function gamePage(req, res) {
   // if game has not yet started --> redirect to qr home page
   if (!gameStarted) {
@@ -293,6 +290,7 @@ function manualAdvanceTurn() {
 // Submit a suggestion during a player's turn
 export function submitSuggestion(req, res) {
   console.log('SUBMITTED')
+  
   const { suspect, weapon, room } = req.body;
   const playerName = req.session.playerName;
 

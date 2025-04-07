@@ -183,7 +183,9 @@
                         // Disable the form after submission
                         resultDiv.innerHTML = `<div class="turn-notification">${data.message}</div>`;
                         suggestionForm.querySelectorAll('input, button').forEach(el => el.disabled = true);
-                        window.location.href = '/game'; 
+                        window.location.href = '/game';
+                         
+                        checkForSuggestionResponse();
                     } else {
                         alert('Error: ' + data.message);
                     }

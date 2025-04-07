@@ -27,7 +27,6 @@
             padding: 10px;
             border-radius: 5px;
         }
-        /* New scrollable cards container */
         .cards-scroll-container {
             position: relative;
             width: 100%;
@@ -39,9 +38,9 @@
             scroll-behavior: smooth;
             padding: 20px 10px;
             gap: 20px;
-            -webkit-overflow-scrolling: touch; /* For smooth scrolling on iOS */
-            scrollbar-width: thin; /* For Firefox */
-            scrollbar-color: #ccc transparent; /* For Firefox */
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin; 
+            scrollbar-color: #ccc transparent;
         }
         .cards-container::-webkit-scrollbar {
             height: 8px;
@@ -90,7 +89,7 @@
             padding: 10px;
             width: 140px;
             height: 200px;
-            flex-shrink: 0; /* Prevent cards from shrinking */
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -108,15 +107,15 @@
         .card.card-image::before {
             content: "";
             display: block;
-            padding-top: 100%; /* Forces a square area as placeholder */
+            padding-top: 100%;
         }
         .card-image {
             background-size: cover;
             background-position: center;
-            padding: 0; /* Remove padding to let image fill the entire card */
-            overflow: hidden; /* Prevent image from spilling outside border */
-            background-repeat: no-repeat; /* Ensure image doesn't repeat */
-            position: relative; /* For positioning the card label */
+            padding: 0;
+            overflow: hidden;
+            background-repeat: no-repeat; 
+            position: relative;
         }
         .suspect-card {
             border-color: #ff6b6b;
@@ -356,17 +355,26 @@
                 fetch('/api/game-status')
                     .then(response => response.json())
                     .then(data => {
-                        if (data.gameOver) {
-                            alert(`${data.winner} has won the game! 🎉`);
-                            window.location.reload();
-                        } else if (data.currentTurn !== '<%= currentTurn %>') {
-                            window.location.reload();
-                        } else if (data.currentTurn === '<%= playerName %>' && window.location.pathname === '/game') {
-                            // If it's this player's turn and they're on the game page, redirect to make-suggestion
-                            window.location.href = '/make-suggestion';
+                    if (data.gameOver) {
+                        alert(`${data.winner} has won the game! 🎉`);
+                        window.location.reload();
+                    } else if (data.currentTurn !== '<%= currentTurn %>') {
+                        const notif = document.querySelector('.turn-notification');
+                        if (notif) {
+                        notif.innerHTML = `<p>Now it's <strong>${data.currentTurn}</strong>'s turn.</p>`;
+                        } else {
+                        const div = document.createElement('div');
+                        div.className = 'turn-notification';
+                        div.innerHTML = `<p>Now it's <strong>${data.currentTurn}</strong>'s turn.</p>`;
+                        document.querySelector('.game-container').appendChild(div);
                         }
-                    });
-            }, 1000); // Check every second
+
+                        if (data.currentTurn === '<%= playerName %>') {
+                        window.location.href = '/make-suggestion';
+                        }
+                    }
+                });
+            }, 1000);
         });
     </script>
 </body>
