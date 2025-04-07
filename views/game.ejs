@@ -179,48 +179,13 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         } 
-        .current-turn {
-            background-color: #f8f9fa;
-            border-left: 5px solid #4CAF50;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
         .turn-notification {
-            background-color: #e7f3fe;
-            border: 1px solid #b6d4fe;
-            color: #0062cc;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 15px;
-        }
-        .waiting-notification {
             background-color: #fff3cd;
             border: 1px solid #ffeeba;
             color: #856404;
             padding: 15px;
             border-radius: 5px;
             margin-top: 15px;
-        }
-        .make-suggestion-button {
-            background-color: #4a6ea9;
-            color: white;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 20px;
-            margin-bottom: 20px;
-            transition: all 0.3s;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .make-suggestion-button:hover {
-            background-color: #3a5a8f;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
         .card-type-indicator {
             position: absolute;
@@ -281,20 +246,11 @@
             <button class="scroll-button scroll-right" onclick="scrollCards('right')">&#10095;</button>
         </div>
           
-        <div class="current-turn">
-            <h3>Current Turn</h3>
-            <p>It's <strong><%= currentTurn %>'s</strong> turn</p>
-            <% if (playerName === currentTurn) { %>
-                <div class="turn-notification">
-                    <p>It's your turn! Make your move.</p>
-                    <button class="make-suggestion-button" onclick="window.location.href='/make-suggestion'">Make a Suggestion</button>
-                </div>
-            <% } else { %>
-                <div class="waiting-notification">
-                    <p>Waiting for <%= currentTurn %> to make a move...</p>
-                </div>
-            <% } %>
-        </div>
+        <% if (currentTurn !== playerName) { %>
+            <div class="turn-notification">
+                <p>Currently waiting for <%= currentTurn %> to make a move...</p>
+            </div>
+        <% } %>
         
         <% if (playerCards.length === 0) { %>
             <p>You don't have any cards.</p>
@@ -316,6 +272,11 @@
         }
         
         document.addEventListener('DOMContentLoaded', function() {
+            // Redirect to make-suggestion page if it's the player's turn
+            if ('<%= playerName %>' === '<%= currentTurn %>') {
+                window.location.href = '/make-suggestion';
+            }
+            
             // Add event listener to handle image loading errors
             document.querySelectorAll('.card-image').forEach(card => {
                 const backgroundImg = card.style.backgroundImage;
@@ -401,8 +362,8 @@
                         } else if (data.currentTurn !== '<%= currentTurn %>') {
                             window.location.reload();
                         } else if (data.currentTurn === '<%= playerName %>' && window.location.pathname === '/game') {
-                            // This is a notification to the current player that it's their turn
-                            // You could highlight the Make Suggestion button or show a toast/notification here
+                            // If it's this player's turn and they're on the game page, redirect to make-suggestion
+                            window.location.href = '/make-suggestion';
                         }
                     });
             }, 1000); // Check every second
