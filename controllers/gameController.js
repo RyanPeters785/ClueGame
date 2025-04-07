@@ -344,12 +344,14 @@ export function submitSuggestion(req, res) {
       gameOver = true;
       winner = playerName;
   
+      // Redirect the player back to the game page after declaring a winner
       return res.json({
         success: true,
         message: `${playerName} made the correct accusation and WON the game!`,
         canRefute: false,
         gameOver: true,
-        winner: playerName
+        winner: playerName,
+        redirect: '/game'  // Add redirect URL
       });
     }
   
@@ -360,13 +362,25 @@ export function submitSuggestion(req, res) {
       manualAdvanceTurn();
     }, 100);
   
+    // Redirect the player back to the game page after unrefutable suggestion
     return res.json({
       success: true,
       message: `No one could refute ${playerName}'s suggestion.`,
       canRefute: false,
-      nextPlayer: getCurrentTurn()
+      nextPlayer: getCurrentTurn(),
+      redirect: '/game'  // Add redirect URL
     });
   }
+  
+  // Someone can refute, return the appropriate response
+  // Include a redirect back to game page
+  return res.json({
+    success: true,
+    message: `${nextPlayer} needs to respond to your suggestion.`,
+    canRefute: true,
+    nextPlayer: nextPlayer,
+    redirect: '/game'  // Add redirect URL
+  });
 }
 
 // Respond to a suggestion (show a card or pass)

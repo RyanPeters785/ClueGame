@@ -179,13 +179,21 @@
                     if (data.success) {
                         const resultDiv = document.getElementById('suggestion-result');
                         resultDiv.classList.remove('hidden');
-
+    
                         // Disable the form after submission
                         resultDiv.innerHTML = `<div class="turn-notification">${data.message}</div>`;
                         suggestionForm.querySelectorAll('input, button').forEach(el => el.disabled = true);
-                        window.location.href = '/game';
-                         
+                        
+                        // Start checking for responses instead of immediately redirecting
                         checkForSuggestionResponse();
+                        
+                        // If this is a winning guess or no one can refute, we can redirect immediately
+                        if (data.gameOver || data.canRefute === false) {
+                            // Wait a moment to show the message before redirecting
+                            setTimeout(() => {
+                                window.location.href = '/game';
+                            }, 2000); // 2 second delay
+                        }
                     } else {
                         alert('Error: ' + data.message);
                     }
