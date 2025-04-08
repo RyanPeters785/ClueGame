@@ -521,26 +521,33 @@ export function checkSuggestionStatus(req, res) {
   res.json({ resolved });
 }
 
-// Add this new function to handle the suggestion page
+// function to handle the suggestion page
 export function makeSuggestionPage(req, res) {
   // If game has not yet started, redirect to home
   if (!gameStarted) {
     return res.redirect('/');
   }
-  
-  // Get player name from session
+
   const playerName = req.session.playerName;
-  
+
   // If not a valid player, redirect to login
   if (!playerName || !players.includes(playerName)) {
     return res.redirect('/login');
   }
-  
+
   // If it's not this player's turn, redirect to game page
   if (playerName !== getCurrentTurn()) {
     return res.redirect('/game');
   }
-  
+
+  if (
+    currentSuggestion &&
+    currentSuggestion.suggester === playerName &&
+    !currentSuggestion.resolved
+  ) {
+    return res.redirect('/game');
+  }
+
   // Render the make suggestion page
   res.render('make-suggestion', {
     playerName,
@@ -550,6 +557,7 @@ export function makeSuggestionPage(req, res) {
     playerEliminatedCards: playerEliminatedCards[playerName] || []
   });
 }
+
 
 export function getGameStatus(req, res) {
   res.json({
@@ -578,6 +586,72 @@ export function clearSuggestion(req, res) {
       currentSuggestion = null;
   }
   res.json({ success: true });
+}
+
+// New function to handle suggestion resolution on the backend
+export function resolveSuggestion(req, res) {
+  const playerName = req.session.playerName;
+  
+  // Only the suggester can resolve their own suggestion
+  if (!currentSuggestion || currentSuggestion.suggester !== playerName) {
+    return res.status(403).json({ 
+      success: false, 
+      message: "No active suggestion or not your suggestion to resolve" 
+    });
+  }
+  
+  let result = {
+    success: true,
+    resolved: true,
+    message: ""
+  };
+  
+  // Handle the suggestion resolution based on state
+  if (currentSuggestion.refutedBy) {
+    const refuter = currentSuggestion.refutedBy.player;
+    const card = currentSuggestion.refutedBy.card;
+    
+    result.refuted = true;
+    result.refutedBy = refuter;
+    result.card = card;
+    result.message = `${refuter} has refuted your suggestion by showing you: ${card}`;
+    
+    // Update suggester's eliminated cards
+    if (!playerEliminatedCards[playerName]) {
+      playerEliminatedCards[playerName] = [];
+    }
+    
+    // The refuting player showed them one card, so the other two can be added to eliminated list
+    const remainingCards = [currentSuggestion.suspect, currentSuggestion.weapon, currentSuggestion.room]
+      .filter(c => c !== card);
+      
+    remainingCards.forEach(c => {
+      if (!playerEliminatedCards[playerName].includes(c)) {
+        playerEliminatedCards[playerName].push(c);
+      }
+    });
+  } 
+  else if (currentSuggestion.noRefute) {
+    result.noRefute = true;
+    result.message = "No one could refute your suggestion!";
+  }
+  else {
+    // Suggestion is still in progress
+    return res.json({ 
+      success: true,
+      resolved: false,
+      message: "Waiting for players to respond to your suggestion..."
+    });
+  }
+  
+  // Clear the suggestion after processing
+  setTimeout(() => {
+    currentSuggestion = null;
+    // Advance the turn now that the suggestion is resolved
+    advanceTurn();
+  }, 1000);
+  
+  res.json(result);
 }
 
 /* ----------------------------------------------------------------------------------- */
@@ -612,5 +686,6 @@ export default {
     makeSuggestionPage,
     flappyBird,
     doodle,
-    clearSuggestion
+    clearSuggestion,
+    resolveSuggestion
 };

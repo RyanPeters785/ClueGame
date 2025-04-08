@@ -395,42 +395,66 @@
                 document.getElementById('popupOverlay').style.display = 'none';
             }
 
-            // Function to check suggestion status
-            function checkSuggestionStatus() {
-                const playerName = '<%= playerName %>';
+            // Function to show a popup
+            function showPopup(title, message, card = null) {
+                console.log('POPUP')
+                document.getElementById('popupTitle').textContent = title;
+                document.getElementById('popupMessage').innerHTML = message;
+            
+                const cardElement = document.getElementById('popupCard');
+                if (card) {
+                    cardElement.textContent = card;
+                    cardElement.style.display = 'flex';
+                } else {
+                    cardElement.style.display = 'none';
+                }
                 
-                fetch('/api/get-eliminated-cards')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.currentSuggestion && data.currentSuggestion.suggester === playerName) {
-                            if (data.currentSuggestion.refutedBy) {
-                                const refuter = data.currentSuggestion.refutedBy.player;
-                                const card = data.currentSuggestion.refutedBy.card;
-                                
-                                showPopup(
-                                    "Suggestion Refuted",
-                                    `<strong>${refuter}</strong> has refuted your suggestion by showing you:`,
-                                    card
-                                );
-                                
-                                fetch('/api/clear-suggestion', { method: 'POST' })
-                                    .catch(error => console.error('Error clearing suggestion:', error));
-                            }
-                            else if (data.currentSuggestion.noRefute) {
-                                showPopup(
-                                    "Suggestion Result",
-                                    "No one could refute your suggestion!"
-                                );
-                                
-                                fetch('/api/clear-suggestion', { method: 'POST' })
-                                    .catch(error => console.error('Error clearing suggestion:', error));
-                            }
-                        }
-                    })
-                    .catch(error => console.error("Error checking suggestion status:", error));
+                document.getElementById('popupOverlay').style.display = 'flex';
             }
 
+            // Function to close the popup
+            function closePopup() {
+                document.getElementById('popupOverlay').style.display = 'none';
+            }
 
+            // Function to check suggestion status using the new backend endpoint
+            function checkSuggestionResolution() {
+                const playerName = '<%= playerName %>';
+                const currentTurn = '<%= currentTurn %>';
+                
+                // Only check if it's this player's suggestion to resolve
+                if (playerName === currentTurn) {
+                    fetch('/api/resolve-suggestion')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.resolved) {
+                                if (data.refuted) {
+                                    showPopup(
+                                        "Suggestion Refuted",
+                                        `<strong>${data.refutedBy}</strong> has refuted your suggestion by showing you:`,
+                                        data.card
+                                    );
+                                } else if (data.noRefute) {
+                                    showPopup(
+                                        "Suggestion Result",
+                                        "No one could refute your suggestion!"
+                                    );
+                                }
+                            }
+                        })
+                        .catch(error => console.error("Error resolving suggestion:", error));
+                }
+            }
+            
+            // Start polling for suggestion resolution
+            document.addEventListener('DOMContentLoaded', function() {
+                if ('<%= playerName %>' === '<%= currentTurn %>') {
+                    // If it's currently this player's turn, check for suggestion resolution
+                    setInterval(checkSuggestionResolution, 1000);
+                }
+                
+                startResponsePolling();
+            });
             
             // Initial check and listen for window resize
             updateScrollButtonVisibility();

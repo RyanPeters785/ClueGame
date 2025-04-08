@@ -63,6 +63,8 @@ app.get('/make-suggestion', gameController.makeSuggestionPage);
 app.get('/flappybird', gameController.flappyBird); 
 app.get('/doodle', gameController.doodle); 
 app.post('/api/clear-suggestion', gameController.clearSuggestion);
+app.get('/api/resolve-suggestion', gameController.resolveSuggestion);
+
 
 
 
