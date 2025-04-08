@@ -115,6 +115,9 @@
     // Tilt control variables
     let tiltEnabled = false;
     let tiltSensitivity = 3; // Adjust this value to change sensitivity
+
+    const characterImage = new Image();
+    characterImage.src = '/cards/Tralalero.png';
     
     // Player object
     const player = {
@@ -132,6 +135,8 @@
       isMovingRight: false,
       moveSpeed: 4,
       
+      
+      /*
       // Draw the player
       draw: function() {
         // Scale player size based on screen dimensions
@@ -171,7 +176,17 @@
         ctx.beginPath();
         ctx.arc(this.x + scaledWidth * 0.5, this.y - scaledHeight * 0.3, scaledWidth * 0.06, 0, Math.PI * 2);
         ctx.fill();
+      }, */
+
+
+      // Draw the player with image
+      draw: function() {
+        const scaleFactor = Math.min(width, height) / 400;
+        const scaledWidth = this.width * scaleFactor;
+        const scaledHeight = this.height * scaleFactor;
+        ctx.drawImage(characterImage, this.x, this.y, scaledWidth, scaledHeight);
       },
+
       
       // Update player position and state
       update: function() {
